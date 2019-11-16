@@ -1,0 +1,32 @@
+<h1 id="tableLabel" *ngIf="ifcFloor">
+  {{ifcFloor.ifcName}} ({{ifcFloor.entityLabel}})
+</h1>
+<p *ngIf="!ifcFloor"><em>Loading floor data...</em></p>
+<div class="container">
+  <div class="row">
+    <div class="col-sm">
+      <div *ngIf="ifcFloor">
+        <select (change)="selectSpaceOnCanvas()" [(ngModel)]="selectedSpace">
+          <option *ngFor="let space of ifcFloor.spaces" [ngValue]="space">
+            {{space.ifcName}}
+          </option>
+        </select>
+      </div>
+    </div>
+    <div class="col-sm" *ngIf="selectedSpace">
+      <ul>
+        <li><strong>Space Name</strong>{{selectedSpace.ifcName}}</li>
+        <li><strong>Label</strong>{{selectedSpace.entityLabel}}</li>
+        <li><strong>Description</strong>{{selectedSpace.ifcName}}</li>
+        <li><strong>Floor Area (net) </strong>{{selectedSpace.netFloorArea}}</li>
+        <li><strong>Floor Area (gross) </strong>{{selectedSpace.grossFloorArea}}</li>
+      </ul>      
+    </div>
+  </div>
+</div>
+  <canvas #canvas width="1000" height="1000"></canvas>
+
+
+
+
+

@@ -1,0 +1,24 @@
+<h1 id="tableLabel">Ifc files</h1>
+
+<p *ngIf="!ifcfiles"><em>Loading uploaded files...</em></p>
+
+<app-upload (onUploadFinished)="uploadFinished($event)"></app-upload>
+
+<table class='table table-striped' aria-labelledby="tableLabel" *ngIf="ifcfiles">
+  <thead>
+    <tr>
+      <th>File Name</th>
+      <th>Size (B)</th>
+      <th>Process</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let ifcfile of ifcfiles">
+      <td>{{ ifcfile.fileName }}</td>
+      <td>{{ ifcfile.fileSize }}</td>
+      <td>
+        <button *ngIf="!ifcfile.wasProcessed" type="button" class="btn btn-success" (click)="processFile(ifcfile.id)">Process</button>
+      </td>
+    </tr>
+  </tbody>
+</table>

@@ -1,0 +1,45 @@
+<h1 id="tableLabel">Ifc Projects</h1>
+
+<p *ngIf="!ifcProjects"><em>Loading projects...</em></p>
+
+<table class='table table-striped' aria-labelledby="tableLabel" *ngIf="ifcProjects">
+  <thead>
+    <tr>
+      <th>Project Name</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let ifcProject of ifcProjects">
+      <td>{{ ifcProject.entityLabel }}</td>
+      <td>
+        <button type="button" *ngIf="!selectedProject || selectedProject.id !== ifcProject.id" class="btn btn-success" (click)="selectProject(ifcProject)">Select</button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<ng-container *ngIf="selectedProject">
+  <div *ngFor="let site of selectedProject.sites">
+    <h3>{{site.entityLabel}}</h3>
+    <div *ngFor="let building of site.buildings">
+      <h4>{{building.entityLabel}}</h4>
+      <table class='table table-striped' aria-labelledby="tableLabel">
+        <thead>
+          <tr>
+            <th>Floor Name</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let floor of building.floors">
+            <td>{{ floor.ifcName }} ({{floor.entityLabel }})</td>
+            <td>
+              <button type="button" class="btn btn-success" [routerLink]="['/floors', floor.id]">Open</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</ng-container>
