@@ -219,7 +219,7 @@ namespace XbimFloorPlanGenerator.Migrations
                     b.Property<double>("NetFloorArea")
                         .HasColumnType("float");
 
-                    b.Property<string>("SpaceCoordinates")
+                    b.Property<string>("SerializedShapeGeometry")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -253,6 +253,9 @@ namespace XbimFloorPlanGenerator.Migrations
 
                     b.Property<bool>("IsExternal")
                         .HasColumnType("bit");
+
+                    b.Property<string>("SerializedShapeGeometry")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("WallSideArea")
                         .HasColumnType("float");

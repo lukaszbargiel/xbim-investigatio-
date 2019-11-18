@@ -1,16 +1,10 @@
 ﻿using AutoMapper;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Xbim.Common.Geometry;
 using Xbim.Ifc;
 using Xbim.Ifc2x3.Interfaces;
 using Xbim.Ifc2x3.Kernel;
-using Xbim.Ifc2x3.MeasureResource;
 using Xbim.Ifc2x3.ProductExtension;
 using Xbim.Ifc2x3.SharedBldgElements;
-using Xbim.ModelGeometry.Scene;
-using XbimFloorPlanGenerator.Data;
 using XbimFloorPlanGenerator.Data.Entities;
 using XbimFloorPlanGenerator.Data.Interfaces;
 using XbimFloorPlanGenerator.Services.Interfaces;
@@ -21,13 +15,14 @@ namespace XbimFloorPlanGenerator.Services
     {
         private IMapper _mapper;
         private readonly IIfcSpaceService _ifcSpaceService;
+        private readonly IIfcGeometryService _ifcGeometryService;
         private readonly ISpaceRepository _spaceRepository;
         private readonly IProjectRepository _projectRepository;
         private readonly ISiteRepository _siteRepository;
         private readonly IBuildingRepository _buildingRepository;
         private readonly IFloorRepository _floorRepository;
         private readonly IWallRepository _wallRepository;
-        private readonly IProductShapeRepository _productShapeRepository;
+        private readonly IIfcWallService _ifcWallService;
         private IfcStore model;
         public IfcParserService(
             IIfcSpaceService ifcSpaceService,
@@ -37,9 +32,11 @@ namespace XbimFloorPlanGenerator.Services
             IBuildingRepository buildingRepository,
             IFloorRepository floorRepository,
             IWallRepository wallRepository,
-            IProductShapeRepository productShapeRepository,
+            IIfcWallService ifcWallService,
+            IIfcGeometryService ifcGeometryService,
             IMapper mapper)
         {
+            _ifcGeometryService = ifcGeometryService;
             _spaceRepository = spaceRepository;
             _ifcSpaceService = ifcSpaceService;
             _projectRepository = projectRepository;
@@ -47,7 +44,7 @@ namespace XbimFloorPlanGenerator.Services
             _buildingRepository = buildingRepository;
             _floorRepository = floorRepository;
             _wallRepository = wallRepository;
-            _productShapeRepository = productShapeRepository;
+            _ifcWallService = ifcWallService;
             _mapper = mapper;
         }
 
@@ -61,7 +58,7 @@ namespace XbimFloorPlanGenerator.Services
 
         private void ExtractBuilding(IfcSite site, int siteId)
         {
-            foreach(IfcBuilding building in site.Buildings)
+            foreach (IfcBuilding building in site.Buildings)
             {
                 var dbbuilding = _mapper.Map<Building>(building);
                 dbbuilding.SiteId = siteId;
@@ -77,9 +74,11 @@ namespace XbimFloorPlanGenerator.Services
 
                 var dbfloor = _mapper.Map<Floor>(storey);
                 dbfloor.BuildingId = buildingId;
-                
+
                 var floorId = _floorRepository.Create(dbfloor);
+
                 ExtractWalls(storey, floorId);
+
                 ExtractSpaces(storey, floorId);
             }
         }
@@ -90,18 +89,9 @@ namespace XbimFloorPlanGenerator.Services
                 .Where(p => !p.GetType().IsSubclassOf(typeof(IfcFeatureElementSubtraction))) // Ignore Openings  
                 .OrderBy(o => o.GetType().Name))
             {
-
-                var dbwall = _mapper.Map<Wall>(wall);
-                dbwall.FloorId = floorId;
-
-                var wallId = _wallRepository.Create(dbwall);
-                var wallShapes = ExtractGeometryData(model, (IfcProduct) wall);
-                foreach(var wallShape in wallShapes)
-                {
-                    wallShape.ProductId = wallId;
-                    wallShape.ShapeType = ProductShapeType.Wall;
-                    _productShapeRepository.Create(wallShape);
-                }
+                var dbWall = _ifcWallService.CreateWall(wall, floorId);
+                //dbWall.ProductShapes = wallShapesBoundries;
+                _wallRepository.Create(dbWall);
             }
         }
 
@@ -115,6 +105,7 @@ namespace XbimFloorPlanGenerator.Services
                 _spaceRepository.Create(dbSpace);
             }
         }
+
         private void ExtractProjectStructure(IfcStore model)
         {
 
@@ -124,51 +115,18 @@ namespace XbimFloorPlanGenerator.Services
             //dbproject.IfcFileName = 
 
             var projectId = _projectRepository.Create(dbproject);
-            
+
             // extract ifc sites
             var ifcSites = model.Instances.OfType<IIfcSite>();
-            foreach(var ifcSite in ifcSites)
+            foreach (var ifcSite in ifcSites)
             {
                 var dbsite = _mapper.Map<Site>((IfcSite)ifcSite);
                 dbsite.ProjectId = projectId;
                 var siteId = _siteRepository.Create(dbsite);
-                ExtractBuilding((IfcSite)ifcSite, siteId);                
-            }           
-        }
-        private List<ProductShape> ExtractGeometryData(IfcStore model, IfcProduct product)
-        {
-            var context = new Xbim3DModelContext(model);
-            var shapes = new List<ProductShape>();
-            context.CreateContext();
- 
-            // https://github.com/xBimTeam/XbimEssentials/issues/121
-            var productShape =
-                context.ShapeInstancesOf(product)
-                    .Where(p => p.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded)
-                .Distinct();
-
-
-            if (productShape.Any())
-            {
-                foreach (var shapeInstance in productShape)
-                {
-
-                    var shapeGeometry = context.ShapeGeometry(shapeInstance.ShapeGeometryLabel);
-                    if (shapeGeometry == null) continue;
-
-                    var transformedBoundry = shapeGeometry.BoundingBox.Transform(shapeInstance.Transformation);
-                    shapes.Add(new ProductShape()
-                    {
-                        BoundingBoxX = transformedBoundry.X,
-                        BoundingBoxY = transformedBoundry.Y,
-                        BoundingBoxSizeX = transformedBoundry.SizeX,
-                        BoundingBoxSizeY = transformedBoundry.SizeY
-                    });
-                }
+                ExtractBuilding((IfcSite)ifcSite, siteId);
             }
-
-            return shapes;
         }
-    
-}
+
+
+    }
 }

@@ -30,10 +30,11 @@ export class FloorComponent implements OnInit {
         this.route.paramMap.subscribe(params => {
             this.http.get<IfcFloor>(this.baseUrl + 'floor-plan/' + params.get('id')).subscribe(result => {
                 this.ifcFloor = result;
+                this.setTransformFactors();
                 this.drawFloorPlan()
             }, error => console.error(error));
         });
-        this.ctx.canvas.addEventListener('mousemove', this.selectRoomOnMouseOver);
+        //this.ctx.canvas.addEventListener('mousemove', this.selectRoomOnMouseOver);
     }
 
     selectRoomOnMouseOver = (e) => {
@@ -41,79 +42,135 @@ export class FloorComponent implements OnInit {
             x: e.clientX - this.ctx.canvas.offsetLeft,
             y: e.clientY - this.ctx.canvas.offsetTop
         };
-        console.log(mousePos.x + ',' + mousePos.y);
+        //console.log(mousePos.x + ',' + mousePos.y);
     }
 
     selectSpaceOnCanvas() {
-        const data = JSON.parse(this.selectedSpace.spaceCoordinates);
+        const data = JSON.parse(this.selectedSpace.serializedShapeGeometry);
 
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
         this.drawFloorPlan();
-        data.forEach((coordinates) => {
-            this.ctx.fillStyle = '#f00';
-            if (coordinates.SpacePositionType == 0) {
-                this.ctx.beginPath();
-                this.ctx.moveTo((coordinates.SweptAreaCoordinates[0].X - this.minX) / this.scaleFactor, (coordinates.SweptAreaCoordinates[0].Y - this.minY) / this.scaleFactor);
-                coordinates.SweptAreaCoordinates.forEach((sweptCoord) => {
-                    this.ctx.lineTo((sweptCoord.X - this.minX) / this.scaleFactor, (sweptCoord.Y - this.minY) / this.scaleFactor);
-                });
-                this.ctx.closePath();
+        this.ctx.beginPath();
+        
+        this.drawProduct(data);
+        this.ctx.closePath();
+        this.ctx.fill();
 
-            }
-            else if (coordinates.SpacePositionType == 1) {
-                // x is a point in the middle so we need to add half of its size to position
-                const startX = coordinates.X - coordinates.XDim / 2;
-                const startY = coordinates.Y - coordinates.YDim / 2;
-                this.ctx.fillRect((startX - this.minX) / this.scaleFactor, (startY - this.minY) / this.scaleFactor, coordinates.XDim / this.scaleFactor, coordinates.YDim / this.scaleFactor);
-            }
-            this.ctx.fill();
-        });
     }
 
-    drawFloorPlan() {
-        this.ctx.fillStyle = 'black';
+    setTransformFactors() {
         let maxX = 0;
         let maxY = 0;
         this.ifcFloor.walls.forEach((wall) => {
-            wall.productShapes.forEach((shape) => {
-                if (this.minX > shape.boundingBoxX) {
-                    this.minX = shape.boundingBoxX;
+            const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
+            productGeometryData.forEach((geometryData) => {
+                let tmpMinX, tmpMinY = 99999999;
+                let tmpMaxX, tmpMaxY = 0;
+                if (geometryData.ShapeGeometryType == 0) {
+                    const minWallX = geometryData.ShapeVertices.reduce(function (prev, curr) {
+                        return prev.X < curr.X ? prev : curr;
+                    });
+                    const minWallY = geometryData.ShapeVertices.reduce(function (prev, curr) {
+                        return prev.Y < curr.Y ? prev : curr;
+                    });
+                    const maxWallX = geometryData.ShapeVertices.reduce(function (prev, curr) {
+                        return prev.X > curr.X ? prev : curr;
+                    });
+                    const maxWallY = geometryData.ShapeVertices.reduce(function (prev, curr) {
+                        return prev.Y > curr.Y ? prev : curr;
+                    });
+                    tmpMinX = minWallX.X;
+                    tmpMinY = minWallY.Y
+                    tmpMaxX = maxWallX.X;
+                    tmpMaxY = maxWallY.Y;
+
                 }
-                if (maxX < (shape.boundingBoxX + shape.boundingBoxSizeX)) {
-                    maxX = (shape.boundingBoxX + shape.boundingBoxSizeX);
+                else if (geometryData.ShapeGeometryType == 1) {
+                    // x is a point in the middle so we need to add half of its size to position
+                    tmpMinX = geometryData.X - geometryData.XDim / 2;
+                    tmpMinY = geometryData.Y - geometryData.YDim / 2;
+                    tmpMaxX = geometryData.X + geometryData.XDim / 2;
+                    tmpMaxY = geometryData.Y + geometryData.YDim / 2; 
                 }
-                if (this.minY > shape.boundingBoxY) {
-                    this.minY = shape.boundingBoxY;
+
+                if (this.minX > tmpMinX) {
+                    this.minX = tmpMinX;
                 }
-                if (maxY < (shape.boundingBoxY + shape.boundingBoxSizeY)) {
-                    maxY = (shape.boundingBoxY + shape.boundingBoxSizeY);
+                if (maxX < tmpMaxX) {
+                    maxX = tmpMaxX;
+                }
+                if (this.minY > tmpMinY) {
+                    this.minY = tmpMinY;
+                }
+                if (maxY < tmpMaxY) {
+                    maxY = tmpMaxY;
                 }
             });
+
         });
 
-        let scaleFactorX = (maxX - this.minX)/1000;
+        let scaleFactorX = (maxX - this.minX) / 1000;
         let scaleFactorY = (maxY - this.minY) / 1000;
         this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
+    }
+    drawFloorPlan() {
+        //this.ctx.fillStyle = 'black';
         this.ifcFloor.walls.forEach((wall) => {
-            wall.productShapes.forEach((shape) => {
-                let x = (shape.boundingBoxX - this.minX) / this.scaleFactor;
-                let y = (shape.boundingBoxY - this.minY) / this.scaleFactor;
-                // move all points to positive axis
-                if (this.minX < 0) {
-                    x = x - this.minX;
-                }
-                if (this.minY < 0) {
-                    y = y - this.minY;
-                }
-                const sizex = shape.boundingBoxSizeX / this.scaleFactor;
-                const sizey = shape.boundingBoxSizeY / this.scaleFactor;
+            const data = JSON.parse(wall.serializedShapeGeometry);
 
-                this.ctx.strokeRect(x, y, sizex, sizey);
-            });
+            //this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
+            //this.drawFloorPlan();
+            this.drawProduct(data);
         });
 
-        const sampleSpace = this.ifcFloor.spaces.find(x => x.spaceCoordinates !== null);
+        //let scaleFactorX = (maxX - this.minX)/1000;
+        //let scaleFactorY = (maxY - this.minY) / 1000;
+        //this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
+        //this.ifcFloor.walls.forEach((wall) => {
+        //    wall.productShapes.forEach((shape) => {
+        //        let x = (shape.boundingBoxX - this.minX) / this.scaleFactor;
+        //        let y = (shape.boundingBoxY - this.minY) / this.scaleFactor;
+        //        // move all points to positive axis
+        //        if (this.minX < 0) {
+        //            x = x - this.minX;
+        //        }
+        //        if (this.minY < 0) {
+        //            y = y - this.minY;
+        //        }
+        //        const sizex = shape.boundingBoxSizeX / this.scaleFactor;
+        //        const sizey = shape.boundingBoxSizeY / this.scaleFactor;
+
+        //        this.ctx.strokeRect(x, y, sizex, sizey);
+        //    });
+        //});
+
+        //const sampleSpace = this.ifcFloor.spaces.find(x => x.spaceCoordinates !== null);
         //this.selectSpaceOnCanvas(sampleSpace);
+    }
+
+    drawProduct(productGeometryData: any) {
+        productGeometryData.forEach((geometryData) => {
+            this.ctx.strokeStyle = '#000';
+            if (geometryData.ShapeGeometryType == 0) {
+                this.ctx.beginPath();
+                this.ctx.moveTo((geometryData.ShapeVertices[0].X - this.minX) / this.scaleFactor, (geometryData.ShapeVertices[0].Y - this.minY) / this.scaleFactor);
+                geometryData.ShapeVertices.forEach((sweptCoord) => {
+                    this.ctx.lineTo((sweptCoord.X - this.minX) / this.scaleFactor, (sweptCoord.Y - this.minY) / this.scaleFactor);
+                });
+                this.ctx.closePath();
+                this.ctx.stroke();
+            }
+            else if (geometryData.ShapeGeometryType == 1) {
+                // x is a point in the middle so we need to add half of its size to position
+                const startX = geometryData.X - geometryData.XDim / 2;
+                const startY = geometryData.Y - geometryData.YDim / 2;                
+                const rectangleX = (startX - this.minX) / this.scaleFactor;
+                const rectangleY = (startY - this.minY) / this.scaleFactor;
+                
+                this.ctx.strokeRect(rectangleX, rectangleY, geometryData.XDim / this.scaleFactor, geometryData.YDim / this.scaleFactor);                
+            }
+            //this.ctx.fill();
+        });
     }
 }
 
@@ -129,6 +186,7 @@ interface IfcWall {
     entityLabel: string;
     description: string;
     productShapes: IfcProductShape[]
+    serializedShapeGeometry: string;
 }
 
 interface IfcSpace {
@@ -139,7 +197,7 @@ interface IfcSpace {
     grossFloorArea: number;
     ifcName: string;
     netFloorArea: number;
-    spaceCoordinates: string;
+    serializedShapeGeometry: string;
 }
 
 interface IfcProductShape {

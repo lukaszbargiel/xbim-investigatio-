@@ -21,6 +21,7 @@ namespace XbimFloorPlanGenerator.Data.Entities
 
         public Floor Floor { get; set; }
         public List<ProductShape> ProductShapes { get; set; }
+        public string SerializedShapeGeometry { get; set; }
         public bool IsExternal { get; set; }
     }
 }

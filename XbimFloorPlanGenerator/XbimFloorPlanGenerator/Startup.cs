@@ -43,6 +43,10 @@ namespace XbimFloorPlanGenerator
             services.AddScoped<IProductShapeRepository, ProductShapeRepository>();
             services.AddScoped<ISpaceRepository, SpaceRepository>();
             services.AddScoped<IIfcSpaceService, IfcSpaceService>();
+            services.AddScoped<IIfcWallService, IfcWallService>();
+            services.AddScoped<IIfcSpaceBoundriesService, IfcSpaceBoundriesService>();
+            services.AddScoped<IIfcGeometryService, IfcGeometryService>();
+
             var mappingConfig = new MapperConfiguration(mc =>
             {
                 mc.AddProfile(new MappingProfile());
