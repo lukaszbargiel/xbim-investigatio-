@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using Xbim.Common.Geometry;
 using XbimFloorPlanGenerator.Services.DTO;
+using System.Linq;
+
 namespace XbimFloorPlanGenerator.Services
 {
     public class BiDimensionalHelper
@@ -17,8 +19,8 @@ namespace XbimFloorPlanGenerator.Services
             var indices = new List<int>();
             vMesh3D.ToPointsWithNormalsAndIndices(out positions, out indices);
 
-            for (var i = 0; i <= positions.Count - 1; i++)
-                vPoint2DCol.Add(new ArbitraryClosedShapeVertices(positions[i][0],positions[i][1]));
+            for (var x = 0; x <= positions.Count - 1; x++)
+                vPoint2DCol.Add(new ArbitraryClosedShapeVertices(positions[x][0], positions[x][1]));
 
             var vNewIndices = new List<int>();
             var vNewPos = new List<ArbitraryClosedShapeVertices>();
@@ -30,11 +32,11 @@ namespace XbimFloorPlanGenerator.Services
             List<Triangle> vListTriangles = new List<Triangle>();
             ArbitraryClosedShapeVertices p1, p2, p3;
 
-            for (var i = 0; i <= indices.Count - 1; i += 3)
+            for (var x = 0; x <= indices.Count - 1; x += 3)
             {
-                p1 = vPoint2DCol[indices[i]];
-                p2 = vPoint2DCol[indices[i + 1]];
-                p3 = vPoint2DCol[indices[i + 2]];
+                p1 = vPoint2DCol[indices[x]];
+                p2 = vPoint2DCol[indices[x + 1]];
+                p3 = vPoint2DCol[indices[x + 2]];
                 vTriangle = new Triangle(p1, p2, p3);
                 if (!vTriangle.IsValid)
                     continue;
@@ -67,6 +69,71 @@ namespace XbimFloorPlanGenerator.Services
                         vNewIndices.Add(vNewPos.Count);
                         vNewPos.Add(p3);
                     }
+                }
+            }
+            /// lets try this feature
+
+            var uniquePoints = new List<ArbitraryClosedShapeVertices>();
+            foreach (var indice in vNewIndices)
+            {
+                var uniquePt = vNewPos[indice];
+                if (!uniquePoints.Contains(uniquePt))
+                {
+                    uniquePoints.Add(uniquePt);
+                }
+                else
+                {
+                    uniquePoints.Remove(uniquePt);
+                }
+
+            }
+            var newPosSortedByX = uniquePoints.OrderBy(s => s.X).ToList();
+            var newPosSortedByY = uniquePoints.OrderBy(s => s.Y).ToList();
+
+            var i = 0;
+            var edges_h = new Dictionary<ArbitraryClosedShapeVertices, ArbitraryClosedShapeVertices>();
+            while(i < uniquePoints.Count)
+            {
+                var currentY = newPosSortedByY[i].Y;
+                while (i < uniquePoints.Count && newPosSortedByY[i].Y == currentY)
+                {
+                    edges_h[newPosSortedByY[i]] = newPosSortedByY[i + 1];
+                    edges_h[newPosSortedByY[i + 1]] = newPosSortedByY[i];
+                    i += 2;
+                }
+            }
+
+            i = 0;
+            var edges_v = new Dictionary<ArbitraryClosedShapeVertices, ArbitraryClosedShapeVertices>();
+            while (i < uniquePoints.Count)
+            {
+                var currentX = newPosSortedByX[i].X;
+                while (i < uniquePoints.Count && newPosSortedByX[i].X == currentX)
+                {
+                    edges_v[newPosSortedByX[i]] = newPosSortedByX[i + 1];
+                    edges_v[newPosSortedByX[i + 1]] = newPosSortedByX[i];
+                    i += 2;
+                }
+            }
+
+            // https://stackoverflow.com/questions/13746284/merging-multiple-adjacent-rectangles-into-one-polygon
+            var currentPoint = edges_h.First();
+            var finalPath = new List<ArbitraryClosedShapeVertices>();
+            while (edges_h.Count > 0)
+            {
+                var startPoint = currentPoint.Key;
+                var endPoint = currentPoint.Value;
+                finalPath.Add(startPoint);
+                finalPath.Add(endPoint);
+                edges_h.Remove(currentPoint.Key);
+
+
+                currentPoint.Key
+                edges_h.First(e => e.Key == currentPoint || e.Value == currentPoint)
+                while (true)
+                {
+                    var curr = prev;
+                    var prev prev;
                 }
             }
             return vPoint2DCol;
