@@ -21,6 +21,13 @@ namespace XbimFloorPlanGenerator.Services
 {
     public class IfcGeometryService : IIfcGeometryService
     {
+        public Xbim3DModelContext context { get; private set; }
+
+        public void InitializeService(IfcStore model)
+        {
+            context = new Xbim3DModelContext(model);
+            context.CreateContext();
+        }
         public List<ShapeGeometry> GetShapeGeometry(IfcProduct ifcProduct)
         {
             if (ifcProduct.ObjectPlacement is IfcLocalPlacement)
@@ -37,11 +44,9 @@ namespace XbimFloorPlanGenerator.Services
             return null;
         }
 
-        public List<ProductShape> GetShapeBoundry(IfcStore model, IfcProduct product)
+        public List<ShapeGeometry> GetShape2DGeometryFromMeshTriangles(IfcProduct product)
         {
-            var context = new Xbim3DModelContext(model);
-            var shapes = new List<ProductShape>();
-            context.CreateContext();
+            var productShapesGeometry = new List<ShapeGeometry>();
 
             // https://github.com/xBimTeam/XbimEssentials/issues/121
             var productShape =
@@ -49,41 +54,54 @@ namespace XbimFloorPlanGenerator.Services
                     .Where(p => p.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded)
                 .Distinct();
 
-
             if (productShape.Any())
             {
                 foreach (var shapeInstance in productShape)
                 {
-
+                    var polygonGeometry = new ArbitraryClosedGeometry();
                     var shapeGeometry = context.ShapeGeometry(shapeInstance.ShapeGeometryLabel);
                     if (shapeGeometry == null) continue;
 
-                    //byte[] data = ((IXbimShapeGeometryData)shapeGeometry).ShapeData;
+                    byte[] data = ((IXbimShapeGeometryData)shapeGeometry).ShapeData;
 
-                    ////If you want to get all the faces and trinagulation use this
-                    //using (var stream = new MemoryStream(data))
-                    //{
-                    //    using (var reader = new BinaryReader(stream))
-                    //    {
-                    //        var mesh = reader.ReadShapeTriangulation();
-
-                    //        List<XbimFaceTriangulation> faces = mesh.Faces as List<XbimFaceTriangulation>;
-                    //        List<XbimPoint3D> vertices = mesh.Vertices as List<XbimPoint3D>;
-                    //    }
-                    //}
-
-                    var transformedBoundry = shapeGeometry.BoundingBox.Transform(shapeInstance.Transformation);
-                    shapes.Add(new ProductShape()
+                    //If you want to get all the faces and trinagulation use this
+                    using (var stream = new MemoryStream(data))
                     {
-                        BoundingBoxX = transformedBoundry.X,
-                        BoundingBoxY = transformedBoundry.Y,
-                        BoundingBoxSizeX = transformedBoundry.SizeX,
-                        BoundingBoxSizeY = transformedBoundry.SizeY
-                    });
+                        using (var reader = new BinaryReader(stream))
+                        {
+                            var mesh = reader.ReadShapeTriangulation();
+
+                            List<XbimFaceTriangulation> faces = mesh.Faces as List<XbimFaceTriangulation>;
+                            List<XbimPoint3D> vertices = mesh.Vertices as List<XbimPoint3D>;
+                            var transformedMesh = mesh.Transform(shapeInstance.Transformation);
+                            var positions = new List<float[]>();
+                            var indices = new List<int>();
+                            transformedMesh.ToPointsWithNormalsAndIndices(out positions, out indices);
+                            foreach(var position in positions)
+                            {
+                                polygonGeometry.ShapeVertices.Add(new ArbitraryClosedShapeVertices()
+                                {
+                                    X = position[0],
+                                    Y = position[1]
+                                });
+                            }
+                        }
+                    }
+
+                    productShapesGeometry.Add(polygonGeometry);
+
+                    //var transformedBoundry = shapeGeometry.BoundingBox.Transform(shapeInstance.Transformation);
+                    //shapes.Add(new ProductShape()
+                    //{
+                    //    BoundingBoxX = transformedBoundry.X,
+                    //    BoundingBoxY = transformedBoundry.Y,
+                    //    BoundingBoxSizeX = transformedBoundry.SizeX,
+                    //    BoundingBoxSizeY = transformedBoundry.SizeY
+                    //});
                 }
             }
 
-            return shapes;
+            return productShapesGeometry;
         }
         private static List<ShapeGeometry> doStuffWithPlacementAndShape(IfcLocalPlacement localPlacement, IfcProductDefinitionShape productDefinitionShape)
         {

@@ -29,6 +29,7 @@ namespace XbimFloorPlanGenerator.Services
             var dbwall = _mapper.Map<Wall>(ifcWall);
             dbwall.FloorId = floorId;
 
+            dbwall.SerializedShapeGeometry = JsonConvert.SerializeObject(_ifcGeometryService.GetShape2DGeometryFromMeshTriangles(ifcWall));
             //var wallId = _wallRepository.Create(dbwall);
             //var wallShapesBoundries = _ifcGeometryService.GetShapeBoundry(model, (IfcProduct)wall);
 
@@ -39,7 +40,7 @@ namespace XbimFloorPlanGenerator.Services
             //    _productShapeRepository.Create(wallShape);
             //}
 
-            dbwall.SerializedShapeGeometry = JsonConvert.SerializeObject(_ifcGeometryService.GetShapeGeometry(ifcWall));
+            //dbwall.SerializedShapeGeometry = JsonConvert.SerializeObject(_ifcGeometryService.GetShapeGeometry(ifcWall));
 
 
             return dbwall;

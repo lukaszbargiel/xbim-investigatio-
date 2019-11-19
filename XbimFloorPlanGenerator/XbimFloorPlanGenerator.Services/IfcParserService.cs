@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Newtonsoft.Json;
 using System.Linq;
 using Xbim.Ifc;
 using Xbim.Ifc2x3.Interfaces;
@@ -52,6 +53,8 @@ namespace XbimFloorPlanGenerator.Services
         {
             using (model = IfcStore.Open(ifcFileName))
             {
+                _ifcGeometryService.InitializeService(model);
+
                 ExtractProjectStructure(model);
             }
         }
@@ -90,7 +93,6 @@ namespace XbimFloorPlanGenerator.Services
                 .OrderBy(o => o.GetType().Name))
             {
                 var dbWall = _ifcWallService.CreateWall(wall, floorId);
-                //dbWall.ProductShapes = wallShapesBoundries;
                 _wallRepository.Create(dbWall);
             }
         }
