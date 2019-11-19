@@ -338,3 +338,5 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/XbimFloorPlanGenerator/XbimFloorPlanGenerator/Resources/IFC/OneWallTwoWindows.ifc
+/XbimFloorPlanGenerator/XbimFloorPlanGenerator/Resources/IFC/190910_A.ifc

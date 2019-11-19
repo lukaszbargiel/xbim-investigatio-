@@ -76,6 +76,8 @@ namespace XbimFloorPlanGenerator.Services
                             var transformedMesh = mesh.Transform(shapeInstance.Transformation);
                             var positions = new List<float[]>();
                             var indices = new List<int>();
+                            var xxx = BiDimensionalHelper.ConvertMesh3DToPolylineX(mesh, true);
+
                             transformedMesh.ToPointsWithNormalsAndIndices(out positions, out indices);
                             foreach(var position in positions)
                             {
