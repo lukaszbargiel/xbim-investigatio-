@@ -150,7 +150,7 @@ export class FloorComponent implements OnInit {
 
     drawProduct(productGeometryData: any) {
         productGeometryData.forEach((geometryData) => {
-            this.ctx.strokeStyle = '#000';
+            this.ctx.strokeStyle = '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
             if (geometryData.ShapeGeometryType == 0) {
                 this.ctx.beginPath();
                 this.ctx.moveTo((geometryData.ShapeVertices[0].X - this.minX) / this.scaleFactor, (geometryData.ShapeVertices[0].Y - this.minY) / this.scaleFactor);

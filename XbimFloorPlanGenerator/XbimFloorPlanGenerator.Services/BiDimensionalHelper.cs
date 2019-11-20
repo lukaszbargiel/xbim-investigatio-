@@ -9,11 +9,12 @@ namespace XbimFloorPlanGenerator.Services
 {
     public class BiDimensionalHelper
     {
-        public static IList<ArbitraryClosedShapeVertices> ConvertMesh3DToPolylineX(XbimShapeTriangulation vMesh3D, bool isClosed)
+        public static List<ArbitraryClosedShapeVertices> ConvertMesh3DToPolylineX(XbimShapeTriangulation vMesh3D, bool isClosed)
         {
             if (vMesh3D == null)
                 return new List<ArbitraryClosedShapeVertices>();
 
+            var response = new List<ArbitraryClosedShapeVertices>();
             var vPoint2DCol = new List<ArbitraryClosedShapeVertices>();
             var positions = new List<float[]>();
             var indices = new List<int>();
@@ -73,6 +74,13 @@ namespace XbimFloorPlanGenerator.Services
             }
             /// lets try this feature
 
+            var boundaryPath = EdgeHelpers.GetEdges(vNewIndices.ToArray()).FindBoundary().SortEdges();
+            
+            foreach (var pathStep in boundaryPath)
+            {
+                response.Add(vNewPos[pathStep.v1]);
+            }
+            return response;
             var uniquePoints = new List<ArbitraryClosedShapeVertices>();
             foreach (var indice in vNewIndices)
             {
@@ -92,7 +100,7 @@ namespace XbimFloorPlanGenerator.Services
 
             var i = 0;
             var edges_h = new Dictionary<ArbitraryClosedShapeVertices, ArbitraryClosedShapeVertices>();
-            while(i < uniquePoints.Count)
+            while (i < uniquePoints.Count)
             {
                 var currentY = newPosSortedByY[i].Y;
                 while (i < uniquePoints.Count && newPosSortedByY[i].Y == currentY)
@@ -105,6 +113,7 @@ namespace XbimFloorPlanGenerator.Services
 
             i = 0;
             var edges_v = new Dictionary<ArbitraryClosedShapeVertices, ArbitraryClosedShapeVertices>();
+
             while (i < uniquePoints.Count)
             {
                 var currentX = newPosSortedByX[i].X;
@@ -117,28 +126,57 @@ namespace XbimFloorPlanGenerator.Services
             }
 
             // https://stackoverflow.com/questions/13746284/merging-multiple-adjacent-rectangles-into-one-polygon
-            var currentPoint = edges_h.First();
+            var result = new[] { edges_v, edges_h }.SelectMany(dict => dict)
+                         .ToDictionary(pair => pair.Key, pair => pair.Value);
+            var currentEdge = result.First();
+            var previousEdge = result.First();
             var finalPath = new List<ArbitraryClosedShapeVertices>();
-            while (edges_h.Count > 0)
-            {
-                var startPoint = currentPoint.Key;
-                var endPoint = currentPoint.Value;
-                finalPath.Add(startPoint);
-                finalPath.Add(endPoint);
-                edges_h.Remove(currentPoint.Key);
 
 
-                currentPoint.Key
-                edges_h.First(e => e.Key == currentPoint || e.Value == currentPoint)
-                while (true)
-                {
-                    var curr = prev;
-                    var prev prev;
-                }
-            }
-            return vPoint2DCol;
+            //            while (edges_h.Count > 0)
+            //            {
+            //                finalPath.Insert(0, currentEdge.Key);
+            //                //while (true)
+            //                //{
+            //                //    currentEdge
+            //                //}
+            //                var startPoint = currentPoint.Key;
+            //                var endPoint = currentPoint.Value;
+            //                finalPath.Add(startPoint);
+            //                finalPath.Add(endPoint);
+            //                result.Remove(currentPoint.Key);
+
+            //                currentPoint = result.First(e => e.Key == endPoint);
+            //            }
+
+
+            //    while True:
+            //        curr, e = polygon[-1]
+            //        if e == 0:
+            //            next_vertex = edges_v.pop(curr)
+            //            polygon.append((next_vertex, 1))
+            //        else:
+            //            next_vertex = edges_h.pop(curr)
+            //            polygon.append((next_vertex, 0))
+            //        if polygon[-1] == polygon[0]:
+            //            # Closed polygon
+            //            polygon.pop()
+            //            break
+            //    # Remove implementation-markers from the polygon.
+            //    poly = [point for point, _ in polygon]
+            //    for vertex in poly:
+            //        if vertex in edges_h: edges_h.pop(vertex)
+            //        if vertex in edges_v: edges_v.pop(vertex)
+
+            //    p.append(poly)
+
+
+            //for poly in p:
+            //    print poly
+            //return vPoint2DCol;
             //return Get2DOutline(vNewIndices, vNewPos, isClosed);
         }
+
 
         //private List<ArbitraryClosedShapeVertices> Get2DOutline(List<int> vIndices, List<ArbitraryClosedShapeVertices> vPositions, bool isClosed)
         //{
@@ -220,6 +258,80 @@ namespace XbimFloorPlanGenerator.Services
                 );
 
             return Math.Acos(prodEscalar / multNorma);
+        }
+    }
+
+    public static class EdgeHelpers
+    {
+        public struct Edge
+        {
+            public int v1;
+            public int v2;
+            public int triangleIndex;
+            public Edge(int aV1, int aV2, int aIndex)
+            {
+                v1 = aV1;
+                v2 = aV2;
+                triangleIndex = aIndex;
+            }
+        }
+
+        public static List<Edge> GetEdges(int[] aIndices)
+        {
+            List<Edge> result = new List<Edge>();
+            for (int i = 0; i < aIndices.Length; i += 3)
+            {
+                int v1 = aIndices[i];
+                int v2 = aIndices[i + 1];
+                int v3 = aIndices[i + 2];
+                result.Add(new Edge(v1, v2, i));
+                result.Add(new Edge(v2, v3, i));
+                result.Add(new Edge(v3, v1, i));
+            }
+            return result;
+        }
+
+        public static List<Edge> FindBoundary(this List<Edge> aEdges)
+        {
+            List<Edge> result = new List<Edge>(aEdges);
+            for (int i = result.Count - 1; i > 0; i--)
+            {
+                for (int n = i - 1; n >= 0; n--)
+                {
+                    if (result[i].v1 == result[n].v2 && result[i].v2 == result[n].v1)
+                    {
+                        // shared edge so remove both
+                        result.RemoveAt(i);
+                        result.RemoveAt(n);
+                        i--;
+                        break;
+                    }
+                }
+            }
+            return result;
+        }
+        public static List<Edge> SortEdges(this List<Edge> aEdges)
+        {
+            List<Edge> result = new List<Edge>(aEdges);
+            for (int i = 0; i < result.Count - 2; i++)
+            {
+                Edge E = result[i];
+                for (int n = i + 1; n < result.Count; n++)
+                {
+                    Edge a = result[n];
+                    if (E.v2 == a.v1)
+                    {
+                        // in this case they are already in order so just continoue with the next one
+                        if (n == i + 1)
+                            break;
+                        // if we found a match, swap them with the next one after "i"
+                        result[n] = result[i + 1];
+                        result[i + 1] = a;
+                        break;
+                    }
+                }
+            }
+            return result;
         }
     }
 }

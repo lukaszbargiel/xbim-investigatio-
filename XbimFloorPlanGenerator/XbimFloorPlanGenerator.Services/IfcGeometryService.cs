@@ -76,17 +76,18 @@ namespace XbimFloorPlanGenerator.Services
                             var transformedMesh = mesh.Transform(shapeInstance.Transformation);
                             var positions = new List<float[]>();
                             var indices = new List<int>();
-                            var xxx = BiDimensionalHelper.ConvertMesh3DToPolylineX(mesh, true);
+                            var xxx = BiDimensionalHelper.ConvertMesh3DToPolylineX(transformedMesh, true);
 
                             transformedMesh.ToPointsWithNormalsAndIndices(out positions, out indices);
-                            foreach(var position in positions)
-                            {
-                                polygonGeometry.ShapeVertices.Add(new ArbitraryClosedShapeVertices()
-                                {
-                                    X = position[0],
-                                    Y = position[1]
-                                });
-                            }
+                            polygonGeometry.ShapeVertices = xxx;
+                            //foreach(var position in positions)
+                            //{
+                            //    polygonGeometry.ShapeVertices.Add(new ArbitraryClosedShapeVertices()
+                            //    {
+                            //        X = position[0],
+                            //        Y = position[1]
+                            //    });
+                            //}
                         }
                     }
 
