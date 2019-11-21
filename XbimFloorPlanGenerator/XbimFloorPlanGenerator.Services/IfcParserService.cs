@@ -23,7 +23,9 @@ namespace XbimFloorPlanGenerator.Services
         private readonly IBuildingRepository _buildingRepository;
         private readonly IFloorRepository _floorRepository;
         private readonly IWallRepository _wallRepository;
+        private readonly IWindowRepository _windowRepository;
         private readonly IIfcWallService _ifcWallService;
+        private readonly IIfcWindowService _ifcWindowService;
         private IfcStore model;
         public IfcParserService(
             IIfcSpaceService ifcSpaceService,
@@ -33,6 +35,8 @@ namespace XbimFloorPlanGenerator.Services
             IBuildingRepository buildingRepository,
             IFloorRepository floorRepository,
             IWallRepository wallRepository,
+            IWindowRepository windowRepository,
+            IIfcWindowService ifcWindowService,
             IIfcWallService ifcWallService,
             IIfcGeometryService ifcGeometryService,
             IMapper mapper)
@@ -46,6 +50,8 @@ namespace XbimFloorPlanGenerator.Services
             _floorRepository = floorRepository;
             _wallRepository = wallRepository;
             _ifcWallService = ifcWallService;
+            _ifcWindowService = ifcWindowService;
+            _windowRepository = windowRepository;
             _mapper = mapper;
         }
 
@@ -81,11 +87,19 @@ namespace XbimFloorPlanGenerator.Services
                 var floorId = _floorRepository.Create(dbfloor);
 
                 ExtractWalls(storey, floorId);
-
+                ExtractWindows(storey, floorId);
                 ExtractSpaces(storey, floorId);
             }
         }
 
+        private void ExtractWindows(IfcBuildingStorey storey, int floorId) {
+            foreach (var window in storey.ContainsElements.SelectMany(rel => rel.RelatedElements).OfType<IfcWindow>()                
+                .OrderBy(o => o.GetType().Name))
+            {
+                var dbWindow = _ifcWindowService.CreateWindow(window, floorId);
+                _windowRepository.Create(dbWindow);
+            }
+        }
         private void ExtractWalls(IfcBuildingStorey storey, int floorId)
         {
             foreach (var wall in storey.ContainsElements.SelectMany(rel => rel.RelatedElements).OfType<IfcWall>()

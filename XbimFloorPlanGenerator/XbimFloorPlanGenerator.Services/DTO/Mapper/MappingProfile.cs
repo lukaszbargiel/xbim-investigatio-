@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Xbim.Ifc2x3.Interfaces;
 using Xbim.Ifc2x3.Kernel;
 using Xbim.Ifc2x3.ProductExtension;
 using Xbim.Ifc2x3.SharedBldgElements;
@@ -37,11 +38,23 @@ namespace XbimFloorPlanGenerator.Services.DTO.Mapper
     .ForMember(dest => dest.Elevation, opt => opt.MapFrom(src => (double) (src.Elevation ?? 0)));
 
             CreateMap<IfcWall, Wall>()
-                .ForMember(dest => dest.ProductShapes, opt => opt.Ignore())
+                .ForMember(dest => dest.Openings, opt => opt.Ignore())
 .ForMember(dest => dest.IfcId, opt => opt.MapFrom(src => src.GlobalId.Value.ToString()))
 .ForMember(dest => dest.IfcName, opt => opt.MapFrom(src => src.FriendlyName))
 .ForMember(dest => dest.IsExternal, opt => opt.MapFrom(src => (bool) src.IsExternal))
 .ForMember(dest => dest.WallSideArea, opt => opt.MapFrom(src => (double) (src.GetWallSideArea ?? 0)));
+
+            CreateMap<IfcWindow, Window>()
+.ForMember(dest => dest.IfcId, opt => opt.MapFrom(src => src.GlobalId.Value.ToString()))
+.ForMember(dest => dest.IfcName, opt => opt.MapFrom(src => src.FriendlyName))
+.ForMember(dest => dest.IsExternal, opt => opt.MapFrom(src => (bool)src.IsExternal))
+.ForMember(dest => dest.OverallHeight, opt => opt.MapFrom(src => (double)(src.OverallHeight ?? 0)))
+.ForMember(dest => dest.OverallWidth, opt => opt.MapFrom(src => (double)(src.OverallWidth ?? 0)));
+
+            CreateMap<IfcFeatureElementSubtraction, Opening>()
+.ForMember(dest => dest.IfcId, opt => opt.MapFrom(src => src.GlobalId.Value.ToString()))
+.ForMember(dest => dest.IfcName, opt => opt.MapFrom(src => src.FriendlyName))
+.ForMember(dest => dest.EntityLabel, opt => opt.MapFrom(src => src.Name));
 
             CreateMap<IfcSpace, Space>()
 .ForMember(dest => dest.IfcId, opt => opt.MapFrom(src => src.GlobalId.Value.ToString()))

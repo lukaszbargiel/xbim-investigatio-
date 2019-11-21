@@ -7,7 +7,7 @@ using XbimFloorPlanGenerator.Data.Interfaces;
 
 namespace XbimFloorPlanGenerator.Data.Entities
 {
-    public class Space : IEntity
+    public class Window : IEntity
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -15,13 +15,13 @@ namespace XbimFloorPlanGenerator.Data.Entities
         public int FloorId { get; set; }
         public string IfcId { get; set; }
         public string IfcName { get; set; }
-        public string LongName { get; set; }
-        public double GrossFloorArea { get; set; }
+        public double OverallHeight { get; set; }
+        public double OverallWidth { get; set; }
         public string EntityLabel { get; set; }
         public string Description { get; set; }
 
         public Floor Floor { get; set; }
         public string SerializedShapeGeometry { get; set; }
-        public double NetFloorArea { get; set; }
+        public bool IsExternal { get; set; }
     }
 }

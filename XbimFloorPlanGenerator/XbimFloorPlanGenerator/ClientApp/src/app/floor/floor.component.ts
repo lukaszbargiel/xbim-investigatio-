@@ -13,6 +13,7 @@ export class FloorComponent implements OnInit {
     private baseUrl: string;
     private minX = 99999999;
     private minY = 99999999;
+    private maxY = 0;
     private scaleFactor = 1;
 
     selectedSpace: any;
@@ -51,7 +52,7 @@ export class FloorComponent implements OnInit {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
         this.drawFloorPlan();
         this.ctx.beginPath();
-
+        this.ctx.fillStyle = '#9cf';
         this.drawProduct(data);
         this.ctx.closePath();
         this.ctx.fill();
@@ -60,7 +61,7 @@ export class FloorComponent implements OnInit {
 
     setTransformFactors() {
         let maxX = 0;
-        let maxY = 0;
+        this.maxY = 0;
 
         this.ifcFloor.walls.forEach((wall) => {
             const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
@@ -98,19 +99,20 @@ export class FloorComponent implements OnInit {
                     if (this.minY > tmpMinY) {
                         this.minY = tmpMinY;
                     }
-                    if (maxY < tmpMaxY) {
-                        maxY = tmpMaxY;
+                    if (this.maxY < tmpMaxY) {
+                        this.maxY = tmpMaxY;
                     }
                 });
 
             });
         });
         let scaleFactorX = (maxX - this.minX) / 1000;
-        let scaleFactorY = (maxY - this.minY) / 1000;
+        let scaleFactorY = (this.maxY - this.minY) / 1000;
         this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
     }
     drawFloorPlan() {
         //this.ctx.fillStyle = 'black';
+
         this.ifcFloor.walls.forEach((wall) => {
             //if (wall.id != 2662) {
             //    return;
@@ -120,7 +122,13 @@ export class FloorComponent implements OnInit {
 
             //this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
             //this.drawFloorPlan();
+            this.ctx.fillStyle = '#666666';
             this.drawProduct(data);
+            wall.openings.forEach((opening) => {
+                this.ctx.fillStyle = '#e6f2ff';
+                const data = JSON.parse(opening.serializedShapeGeometry);
+                this.drawProduct(data);
+            });
         });
 
         //let scaleFactorX = (maxX - this.minX)/1000;
@@ -149,15 +157,17 @@ export class FloorComponent implements OnInit {
     }
 
     drawProduct(productGeometryData: any) {
+        var revertFactor = ((this.maxY - this.minY) / this.scaleFactor);
         productGeometryData.forEach((polygonSet) => {
             polygonSet.Polygons.forEach((polygon) => {
                 this.ctx.strokeStyle = '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
                 this.ctx.beginPath();
-                this.ctx.moveTo((polygon.PolygonVertices[0].X - this.minX) / this.scaleFactor, (polygon.PolygonVertices[0].Y - this.minY) / this.scaleFactor);
+                // since Y axis starts at the bottom of the canvas which is in opposite to IFC we need to cast Y coordinates based on formulat Ynew = YMax - Y
+                this.ctx.moveTo((polygon.PolygonVertices[0].X - this.minX) / this.scaleFactor, revertFactor - (polygon.PolygonVertices[0].Y - this.minY) / this.scaleFactor);
                 polygon.PolygonVertices.forEach((vertice) => {
-                    this.ctx.lineTo((vertice.X - this.minX) / this.scaleFactor, (vertice.Y - this.minY) / this.scaleFactor);
+                    this.ctx.lineTo((vertice.X - this.minX) / this.scaleFactor, revertFactor - (vertice.Y - this.minY) / this.scaleFactor);
                 });
-                this.ctx.lineTo((polygon.PolygonVertices[0].X - this.minX) / this.scaleFactor, (polygon.PolygonVertices[0].Y - this.minY) / this.scaleFactor);
+                
                 this.ctx.closePath();
                 this.ctx.fill();
 
@@ -178,7 +188,16 @@ interface IfcWall {
     id: number;
     entityLabel: string;
     description: string;
+    openings: IfcOpening[]
     productShapes: IfcProductShape[]
+    serializedShapeGeometry: string;
+}
+
+interface IfcOpening {
+    id: number;
+    entityLabel: string;
+    description: string;
+    ifcName: string;        
     serializedShapeGeometry: string;
 }
 
@@ -189,6 +208,7 @@ interface IfcSpace {
     productShapes: IfcProductShape[];
     grossFloorArea: number;
     ifcName: string;
+    longName: string;
     netFloorArea: number;
     serializedShapeGeometry: string;
 }

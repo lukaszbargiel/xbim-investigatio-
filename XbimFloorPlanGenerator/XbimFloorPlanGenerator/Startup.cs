@@ -40,10 +40,12 @@ namespace XbimFloorPlanGenerator
             services.AddScoped<IBuildingRepository, BuildingRepository>();
             services.AddScoped<IFloorRepository, FloorRepository>();
             services.AddScoped<IWallRepository, WallRepository>();
+            services.AddScoped<IWindowRepository, WindowRepository>();
             services.AddScoped<IProductShapeRepository, ProductShapeRepository>();
             services.AddScoped<ISpaceRepository, SpaceRepository>();
             services.AddScoped<IIfcSpaceService, IfcSpaceService>();
             services.AddScoped<IIfcWallService, IfcWallService>();
+            services.AddScoped<IIfcWindowService, IfcWindowService>();
             services.AddScoped<IIfcSpaceBoundriesService, IfcSpaceBoundriesService>();
             services.AddScoped<IIfcGeometryService, IfcGeometryService>();
 

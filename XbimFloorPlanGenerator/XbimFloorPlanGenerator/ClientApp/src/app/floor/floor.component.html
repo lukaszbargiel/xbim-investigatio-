@@ -8,7 +8,7 @@
       <div *ngIf="ifcFloor">
         <select (change)="selectSpaceOnCanvas()" [(ngModel)]="selectedSpace">
           <option *ngFor="let space of ifcFloor.spaces" [ngValue]="space">
-            {{space.ifcName}}
+            {{space.longName}} ({{space.ifcName}})
           </option>
         </select>
       </div>

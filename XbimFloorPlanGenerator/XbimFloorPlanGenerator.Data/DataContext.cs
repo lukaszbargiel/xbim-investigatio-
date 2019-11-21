@@ -29,14 +29,17 @@ namespace XbimFloorPlanGenerator.Data
                 .HasOne(p => p.Floor)
                 .WithMany(b => b.Walls);
 
+            modelBuilder.Entity<Window>()
+                .HasOne(p => p.Floor)
+                .WithMany(b => b.Windows);
+
             modelBuilder.Entity<Space>()
                 .HasOne(p => p.Floor)
                 .WithMany(b => b.Spaces);
 
-            modelBuilder.Entity<ProductShape>()
+            modelBuilder.Entity<Opening>()
     .HasOne(p => p.Wall)
-    .WithMany(b => b.ProductShapes)
-    .HasForeignKey(p => p.ProductId);
+    .WithMany(b => b.Openings); ;
         }
     }
 }
