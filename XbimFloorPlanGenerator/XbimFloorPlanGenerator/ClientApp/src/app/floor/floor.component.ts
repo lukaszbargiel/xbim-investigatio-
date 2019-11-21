@@ -7,7 +7,7 @@ import { Router, ActivatedRoute, ParamMap } from '@angular/router';
 })
 export class FloorComponent implements OnInit {
     @ViewChild('canvas', { static: true })
-    canvas: ElementRef<HTMLCanvasElement>;  
+    canvas: ElementRef<HTMLCanvasElement>;
     public ifcFloor: IfcFloor;
 
     private baseUrl: string;
@@ -51,7 +51,7 @@ export class FloorComponent implements OnInit {
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
         this.drawFloorPlan();
         this.ctx.beginPath();
-        
+
         this.drawProduct(data);
         this.ctx.closePath();
         this.ctx.fill();
@@ -61,22 +61,25 @@ export class FloorComponent implements OnInit {
     setTransformFactors() {
         let maxX = 0;
         let maxY = 0;
+
         this.ifcFloor.walls.forEach((wall) => {
             const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
-            productGeometryData.forEach((geometryData) => {
-                let tmpMinX, tmpMinY = 99999999;
-                let tmpMaxX, tmpMaxY = 0;
-                if (geometryData.ShapeGeometryType == 0) {
-                    const minWallX = geometryData.ShapeVertices.reduce(function (prev, curr) {
+            productGeometryData.forEach((polygonSet) => {
+                polygonSet.Polygons.forEach((polygon) => {
+
+                    let tmpMinX, tmpMinY = 99999999;
+                    let tmpMaxX, tmpMaxY = 0;
+
+                    const minWallX = polygon.PolygonVertices.reduce(function (prev, curr) {
                         return prev.X < curr.X ? prev : curr;
                     });
-                    const minWallY = geometryData.ShapeVertices.reduce(function (prev, curr) {
+                    const minWallY = polygon.PolygonVertices.reduce(function (prev, curr) {
                         return prev.Y < curr.Y ? prev : curr;
                     });
-                    const maxWallX = geometryData.ShapeVertices.reduce(function (prev, curr) {
+                    const maxWallX = polygon.PolygonVertices.reduce(function (prev, curr) {
                         return prev.X > curr.X ? prev : curr;
                     });
-                    const maxWallY = geometryData.ShapeVertices.reduce(function (prev, curr) {
+                    const maxWallY = polygon.PolygonVertices.reduce(function (prev, curr) {
                         return prev.Y > curr.Y ? prev : curr;
                     });
                     tmpMinX = minWallX.X;
@@ -84,31 +87,24 @@ export class FloorComponent implements OnInit {
                     tmpMaxX = maxWallX.X;
                     tmpMaxY = maxWallY.Y;
 
-                }
-                else if (geometryData.ShapeGeometryType == 1) {
-                    // x is a point in the middle so we need to add half of its size to position
-                    tmpMinX = geometryData.X - geometryData.XDim / 2;
-                    tmpMinY = geometryData.Y - geometryData.YDim / 2;
-                    tmpMaxX = geometryData.X + geometryData.XDim / 2;
-                    tmpMaxY = geometryData.Y + geometryData.YDim / 2; 
-                }
 
-                if (this.minX > tmpMinX) {
-                    this.minX = tmpMinX;
-                }
-                if (maxX < tmpMaxX) {
-                    maxX = tmpMaxX;
-                }
-                if (this.minY > tmpMinY) {
-                    this.minY = tmpMinY;
-                }
-                if (maxY < tmpMaxY) {
-                    maxY = tmpMaxY;
-                }
+
+                    if (this.minX > tmpMinX) {
+                        this.minX = tmpMinX;
+                    }
+                    if (maxX < tmpMaxX) {
+                        maxX = tmpMaxX;
+                    }
+                    if (this.minY > tmpMinY) {
+                        this.minY = tmpMinY;
+                    }
+                    if (maxY < tmpMaxY) {
+                        maxY = tmpMaxY;
+                    }
+                });
+
             });
-
         });
-
         let scaleFactorX = (maxX - this.minX) / 1000;
         let scaleFactorY = (maxY - this.minY) / 1000;
         this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
@@ -116,6 +112,10 @@ export class FloorComponent implements OnInit {
     drawFloorPlan() {
         //this.ctx.fillStyle = 'black';
         this.ifcFloor.walls.forEach((wall) => {
+            //if (wall.id != 2662) {
+            //    return;
+            //}
+            //debugger;
             const data = JSON.parse(wall.serializedShapeGeometry);
 
             //this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
@@ -149,27 +149,20 @@ export class FloorComponent implements OnInit {
     }
 
     drawProduct(productGeometryData: any) {
-        productGeometryData.forEach((geometryData) => {
-            this.ctx.strokeStyle = '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
-            if (geometryData.ShapeGeometryType == 0) {
+        productGeometryData.forEach((polygonSet) => {
+            polygonSet.Polygons.forEach((polygon) => {
+                this.ctx.strokeStyle = '#' + (Math.random() * 0xFFFFFF << 0).toString(16);
                 this.ctx.beginPath();
-                this.ctx.moveTo((geometryData.ShapeVertices[0].X - this.minX) / this.scaleFactor, (geometryData.ShapeVertices[0].Y - this.minY) / this.scaleFactor);
-                geometryData.ShapeVertices.forEach((sweptCoord) => {
-                    this.ctx.lineTo((sweptCoord.X - this.minX) / this.scaleFactor, (sweptCoord.Y - this.minY) / this.scaleFactor);
+                this.ctx.moveTo((polygon.PolygonVertices[0].X - this.minX) / this.scaleFactor, (polygon.PolygonVertices[0].Y - this.minY) / this.scaleFactor);
+                polygon.PolygonVertices.forEach((vertice) => {
+                    this.ctx.lineTo((vertice.X - this.minX) / this.scaleFactor, (vertice.Y - this.minY) / this.scaleFactor);
                 });
+                this.ctx.lineTo((polygon.PolygonVertices[0].X - this.minX) / this.scaleFactor, (polygon.PolygonVertices[0].Y - this.minY) / this.scaleFactor);
                 this.ctx.closePath();
-                this.ctx.stroke();
-            }
-            else if (geometryData.ShapeGeometryType == 1) {
-                // x is a point in the middle so we need to add half of its size to position
-                const startX = geometryData.X - geometryData.XDim / 2;
-                const startY = geometryData.Y - geometryData.YDim / 2;                
-                const rectangleX = (startX - this.minX) / this.scaleFactor;
-                const rectangleY = (startY - this.minY) / this.scaleFactor;
-                
-                this.ctx.strokeRect(rectangleX, rectangleY, geometryData.XDim / this.scaleFactor, geometryData.YDim / this.scaleFactor);                
-            }
-            //this.ctx.fill();
+                this.ctx.fill();
+
+                //this.ctx.fill();
+            });
         });
     }
 }
@@ -203,7 +196,7 @@ interface IfcSpace {
 interface IfcProductShape {
     id: number;
     shapeType: number;
-    boundingBoxX: number;    
+    boundingBoxX: number;
     boundingBoxY: number;
     boundingBoxSizeX: number;
     boundingBoxSizeY: number;

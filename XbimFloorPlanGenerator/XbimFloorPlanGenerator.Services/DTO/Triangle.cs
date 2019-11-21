@@ -7,9 +7,9 @@ namespace XbimFloorPlanGenerator.Services.DTO
 {
     public class Triangle : IEquatable<Triangle>
     {
-        public ArbitraryClosedShapeVertices p1;
-        public ArbitraryClosedShapeVertices p2;
-        public ArbitraryClosedShapeVertices p3;
+        public Point2D p1;
+        public Point2D p2;
+        public Point2D p3;
         public bool IsValid
         {
             get
@@ -24,7 +24,7 @@ namespace XbimFloorPlanGenerator.Services.DTO
             }
         }
 
-        public Triangle(ArbitraryClosedShapeVertices vP1, ArbitraryClosedShapeVertices vP2, ArbitraryClosedShapeVertices vP3)
+        public Triangle(Point2D vP1, Point2D vP2, Point2D vP3)
         {
             p1 = vP1;
             p2 = vP2;

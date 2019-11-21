@@ -9,7 +9,6 @@ namespace XbimFloorPlanGenerator.Services.Interfaces
     public interface IIfcGeometryService
     {
         void InitializeService(IfcStore model);
-        List<ShapeGeometry> GetShapeGeometry(IfcProduct ifcProduct);
-        List<ShapeGeometry> GetShape2DGeometryFromMeshTriangles(IfcProduct product);
+        List<PolygonSet> GetShape2DGeometryFromMeshTriangles(IfcProduct product);
     }
 }
