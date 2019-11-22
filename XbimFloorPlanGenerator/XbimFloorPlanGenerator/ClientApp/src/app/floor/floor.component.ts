@@ -1,13 +1,15 @@
-import { Component, Inject, ViewChild, ElementRef, OnInit } from '@angular/core';
+import { Component, Inject, ViewChild, ElementRef, OnInit, AfterViewInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute, ParamMap } from '@angular/router';
+import { ViewPortComponent } from '../viewport/viewport.component';
 @Component({
     selector: 'app-floor-details',
     templateUrl: './floor.component.html'
 })
-export class FloorComponent implements OnInit {
-    @ViewChild('canvas', { static: true })
-    canvas: ElementRef<HTMLCanvasElement>;
+export class FloorComponent implements OnInit  {
+    @ViewChild('canvas', { static: true }) canvas: ElementRef<HTMLCanvasElement>;
+    @ViewChild('viewport', { static: true }) private viewPort: ViewPortComponent;
+    
     public ifcFloor: IfcFloor;
 
     private baseUrl: string;
@@ -32,7 +34,9 @@ export class FloorComponent implements OnInit {
             this.http.get<IfcFloor>(this.baseUrl + 'floor-plan/' + params.get('id')).subscribe(result => {
                 this.ifcFloor = result;
                 this.setTransformFactors();
-                this.drawFloorPlan()
+                this.drawFloorPlan();
+                this.viewPort.redraw(this.ifcFloor);
+                
             }, error => console.error(error));
         });
         //this.ctx.canvas.addEventListener('mousemove', this.selectRoomOnMouseOver);

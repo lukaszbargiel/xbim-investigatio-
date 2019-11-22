@@ -27,6 +27,8 @@
     "core-js": "^2.6.5",
     "jquery": "3.4.1",
     "oidc-client": "^1.9.0",
+    "pixi-viewport": "^4.4.1",
+    "pixi.js": "^5.2.0",
     "popper.js": "^1.14.3",
     "rxjs": "^6.4.0",
     "zone.js": "~0.9.1"

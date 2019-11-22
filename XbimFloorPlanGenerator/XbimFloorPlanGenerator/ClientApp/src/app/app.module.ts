@@ -12,6 +12,7 @@ import { FetchDataComponent } from './fetch-data/fetch-data.component';
 import { UploadComponent } from './fetch-data/upload.component';
 import { ProjectsComponent } from './projects/projects.component';
 import { FloorComponent } from './floor/floor.component';
+import { ViewPortComponent } from './viewport/viewport.component';
 
 @NgModule({
     declarations: [
@@ -22,7 +23,8 @@ import { FloorComponent } from './floor/floor.component';
         FetchDataComponent,
         UploadComponent,
         ProjectsComponent,
-        FloorComponent 
+        FloorComponent,
+        ViewPortComponent
     ],
     imports: [
         BrowserModule.withServerTransition({ appId: 'ng-cli-universal' }),

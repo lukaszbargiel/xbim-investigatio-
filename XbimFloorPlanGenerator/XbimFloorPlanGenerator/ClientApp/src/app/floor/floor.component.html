@@ -20,11 +20,14 @@
         <li><strong>Description</strong>{{selectedSpace.ifcName}}</li>
         <li><strong>Floor Area (net) </strong>{{selectedSpace.netFloorArea}}</li>
         <li><strong>Floor Area (gross) </strong>{{selectedSpace.grossFloorArea}}</li>
-      </ul>      
+      </ul>
     </div>
   </div>
 </div>
-  <canvas #canvas width="1000" height="1000"></canvas>
+
+<app-view-port #viewport></app-view-port>
+
+<canvas #canvas width="1000" height="1000"></canvas>
 
 
 
