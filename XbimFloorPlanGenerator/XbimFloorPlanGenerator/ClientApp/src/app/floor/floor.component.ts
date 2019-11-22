@@ -135,29 +135,6 @@ export class FloorComponent implements OnInit  {
             });
         });
 
-        //let scaleFactorX = (maxX - this.minX)/1000;
-        //let scaleFactorY = (maxY - this.minY) / 1000;
-        //this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
-        //this.ifcFloor.walls.forEach((wall) => {
-        //    wall.productShapes.forEach((shape) => {
-        //        let x = (shape.boundingBoxX - this.minX) / this.scaleFactor;
-        //        let y = (shape.boundingBoxY - this.minY) / this.scaleFactor;
-        //        // move all points to positive axis
-        //        if (this.minX < 0) {
-        //            x = x - this.minX;
-        //        }
-        //        if (this.minY < 0) {
-        //            y = y - this.minY;
-        //        }
-        //        const sizex = shape.boundingBoxSizeX / this.scaleFactor;
-        //        const sizey = shape.boundingBoxSizeY / this.scaleFactor;
-
-        //        this.ctx.strokeRect(x, y, sizex, sizey);
-        //    });
-        //});
-
-        //const sampleSpace = this.ifcFloor.spaces.find(x => x.spaceCoordinates !== null);
-        //this.selectSpaceOnCanvas(sampleSpace);
     }
 
     drawProduct(productGeometryData: any) {
