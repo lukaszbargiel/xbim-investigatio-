@@ -6,7 +6,7 @@
   <div class="row">
     <div class="col-sm">
       <div *ngIf="ifcFloor">
-        <select (change)="selectSpaceOnCanvas()" [(ngModel)]="selectedSpace">
+        <select [(ngModel)]="selectedSpace">
           <option *ngFor="let space of ifcFloor.spaces" [ngValue]="space">
             {{space.longName}} ({{space.ifcName}})
           </option>
@@ -25,9 +25,7 @@
   </div>
 </div>
 
-<app-view-port #viewport></app-view-port>
-
-<canvas #canvas width="1000" height="1000"></canvas>
+<app-view-port #viewport [selected-space]=selectedSpace (selectSpaceEvent)="selectSpace($event)"></app-view-port>
 
 
 
