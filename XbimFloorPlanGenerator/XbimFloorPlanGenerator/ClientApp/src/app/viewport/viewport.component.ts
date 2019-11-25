@@ -1,4 +1,4 @@
-import { OnInit, Component, ElementRef, NgZone, Input, OnChanges, SimpleChanges, SimpleChange, Output, EventEmitter } from '@angular/core';
+import { OnInit, Component, ElementRef, NgZone, Input, OnChanges, SimpleChanges, SimpleChange, Output, EventEmitter, ViewChild } from '@angular/core';
 import { Application, Sprite, Text, Polygon, Point, Graphics, filters, TextStyle } from 'pixi.js';
 import { Viewport } from 'pixi-viewport'
 import { IfcFloor, IfcSpace } from '../floor/floor.component';
@@ -8,6 +8,7 @@ import { IfcFloor, IfcSpace } from '../floor/floor.component';
 })
 export class ViewPortComponent implements OnInit, OnChanges  {
     @Input('selected-space') selectedSpace: IfcSpace;
+
     public app: Application;
     public viewport: Viewport;
     private minX = 99999999;
@@ -15,6 +16,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
     private maxY = 0;
     private scaleFactor = 1;
     private revertFactor = 1;
+    private ifcFloor: IfcFloor;
     public spaceGraphics: { [id: number]: Graphics; } = {};
     public spaceLabelStyle = new TextStyle({
         fontSize: 36
@@ -86,6 +88,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
 
             });
         });
+
         let scaleFactorX = (maxX - this.minX) / 1000;
         let scaleFactorY = (this.maxY - this.minY) / 1000;
         this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
@@ -97,20 +100,9 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         if (!floorDefinition) {
             return;
         }
+        this.ifcFloor = floorDefinition;
 
         this.setTransformFactors(floorDefinition);
-
-        floorDefinition.walls.forEach((wall) => {
-            const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
-            const wallGraphic = this.generateGraphics(productGeometryData, 0x666666, wall.id);
-            this.viewport.addChild(wallGraphic);
-
-            wall.openings.forEach((opening) => {
-                const data = JSON.parse(opening.serializedShapeGeometry);
-                const openingGraphic = this.generateGraphics(data, 0xe6f2ff);
-                this.viewport.addChild(openingGraphic);
-            });
-        });
 
         floorDefinition.spaces.forEach((space) => {
             const productGeometryData = JSON.parse(space.serializedShapeGeometry);
@@ -119,8 +111,9 @@ export class ViewPortComponent implements OnInit, OnChanges  {
 
             // we cannot simply add text - it needs to be adjust to container size
             const spaceName = new Text(space.longName, this.spaceLabelStyle);
+            spaceName.resolution = 12;
             while (spaceName.width > bounds.width) spaceName.style.fontSize--;
-            spaceName.x = bounds.x + (bounds.width - spaceName.width) /2;
+            spaceName.x = bounds.x + (bounds.width - spaceName.width) / 2;
             spaceName.y = bounds.y + bounds.height / 2;
             spaceGraphic.addChild(spaceName);
 
@@ -137,14 +130,26 @@ export class ViewPortComponent implements OnInit, OnChanges  {
             });
 
             spaceGraphic.on('pointerdown', (e) => {
-                const selectedSpaceId : number = Number(Object.keys(this.spaceGraphics).find(key => this.spaceGraphics[key] === e.currentTarget));
+                const selectedSpaceId: number = Number(Object.keys(this.spaceGraphics).find(key => this.spaceGraphics[key] === e.currentTarget));
                 this.selectSpaceEvent.next(selectedSpaceId);
-                
+
             });
             this.viewport.addChild(spaceGraphic);
 
             this.spaceGraphics[space.id] = spaceGraphic;
         });
+
+        floorDefinition.walls.forEach((wall) => {
+            const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
+            const wallGraphic = this.generateGraphics(productGeometryData, 0x666666, wall.id);
+            this.viewport.addChild(wallGraphic);
+
+            wall.openings.forEach((opening) => {
+                const data = JSON.parse(opening.serializedShapeGeometry);
+                const openingGraphic = this.generateGraphics(data, 0xe6f2ff);
+                this.viewport.addChild(openingGraphic);
+            });
+        });        
 
     }
 
@@ -190,18 +195,26 @@ export class ViewPortComponent implements OnInit, OnChanges  {
     }
     ngOnInit(): void {
         this.ngZone.runOutsideAngular(() => {
-            this.app = new Application({ backgroundColor: 0xffffff });
+            this.app = new Application({
+                backgroundColor: 0xffffff,
+                resizeTo: this.elementRef.nativeElement.parentElement,
+                resolution: devicePixelRatio
+            });
         });
 
         this.elementRef.nativeElement.appendChild(this.app.view);
 
-        this.elementRef.nativeElement.addEventListener("wheel", function (event) {
-            event.preventDefault()
+        this.elementRef.nativeElement.addEventListener("wheel", e => {
+
+            //if (this.ifcFloor) {
+            //    console.log('redraw');
+            //    this.redraw(this.ifcFloor);
+            //}
+            //event.preventDefault()
         });
 
-
         this.viewport = new Viewport({
-            screenWidth: parent.innerWidth,
+            screenWidth: window.innerWidth,
             screenHeight: window.innerHeight,
             worldWidth: 1000,
             worldHeight: 1000,
