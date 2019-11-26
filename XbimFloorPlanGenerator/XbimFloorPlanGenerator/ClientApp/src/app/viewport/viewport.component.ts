@@ -19,7 +19,8 @@ export class ViewPortComponent implements OnInit, OnChanges  {
     private ifcFloor: IfcFloor;
     public spaceGraphics: { [id: number]: Graphics; } = {};
     public spaceLabelStyle = new TextStyle({
-        fontSize: 36
+        fontSize: 8,
+        wordWrap: true
     });
 
     constructor(private elementRef: ElementRef, private ngZone: NgZone) { }
@@ -111,8 +112,10 @@ export class ViewPortComponent implements OnInit, OnChanges  {
 
             // we cannot simply add text - it needs to be adjust to container size
             const spaceName = new Text(space.longName, this.spaceLabelStyle);
-            spaceName.resolution = 12;
-            while (spaceName.width > bounds.width) spaceName.style.fontSize--;
+            spaceName.resolution = 4;
+            spaceName.style.wordWrap = true;
+            spaceName.style.wordWrapWidth = bounds.width;
+            //while (spaceName.width > bounds.width) spaceName.style.fontSize--;
             spaceName.x = bounds.x + (bounds.width - spaceName.width) / 2;
             spaceName.y = bounds.y + bounds.height / 2;
             spaceGraphic.addChild(spaceName);

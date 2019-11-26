@@ -38,7 +38,7 @@ namespace XbimFloorPlanGenerator.Services
             dbSpace.FloorId = floorId;
             dbSpace.SerializedShapeGeometry = JsonConvert.SerializeObject(_ifcGeometryService.GetShape2DGeometryFromMeshTriangles(ifcSpace));
 
-            //_spaceBoundriesService.ExtractSpaceBoundries(ifcSpace);
+            dbSpace.SerializedBoundryData = JsonConvert.SerializeObject(_spaceBoundriesService.ExtractSpaceBoundries(ifcSpace));
 
             return dbSpace;
         }

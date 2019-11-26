@@ -14,13 +14,44 @@
       </div>
     </div>
     <div class="col-sm" *ngIf="selectedSpace">
-      <ul>
-        <li><strong>Space Name</strong>{{selectedSpace.ifcName}}</li>
-        <li><strong>Label</strong>{{selectedSpace.entityLabel}}</li>
-        <li><strong>Description</strong>{{selectedSpace.ifcName}}</li>
-        <li><strong>Floor Area (net) </strong>{{selectedSpace.netFloorArea}}</li>
-        <li><strong>Floor Area (gross) </strong>{{selectedSpace.grossFloorArea}}</li>
-      </ul>
+      <dl class="row">
+        <dd class="col-sm-9">Space Name</dd>
+        <dt class="col-sm-3">{{selectedSpace.ifcName}}</dt>
+        <dd class="col-sm-9">Label</dd>
+        <dt class="col-sm-3">{{selectedSpace.entityLabel}}</dt>
+        <dd class="col-sm-9">Description</dd>
+        <dt class="col-sm-3">{{selectedSpace.longName}}</dt>
+        <dd class="col-sm-9">Floor Area (net)</dd>
+        <dt class="col-sm-3">{{selectedSpace.netFloorArea.toFixed(2)}}</dt>
+        <dd class="col-sm-9">Floor Area (gross)</dd>
+        <dt class="col-sm-3">{{selectedSpace.grossFloorArea.toFixed(2)}}</dt>
+      </dl>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Type</th>
+            <th scope="col">Name</th>
+            <th scope="col">External</th>
+            <th scope="col">Phisical</th>
+            <th scope="col">Calculated Area m<sup>2</sup></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let boundry of selectedBoundries">
+            <th>{{boundry.BoundryName}}</th>
+            <td>{{boundry.BoundryType}}</td>
+            <td>{{boundry.IsExternal ? 'Yes' : 'No'}}</td>
+            <td>
+              {{boundry.IsPhysical ? 'Yes' : 'No'}}
+            </td>
+            <td>
+              {{boundry.BounderyArea.toFixed(2)}}
+            </td>
+          </tr>
+          
+        </tbody>
+        </table>
     </div>
   </div>
 </div>

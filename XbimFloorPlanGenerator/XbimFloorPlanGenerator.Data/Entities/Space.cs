@@ -23,5 +23,7 @@ namespace XbimFloorPlanGenerator.Data.Entities
         public Floor Floor { get; set; }
         public string SerializedShapeGeometry { get; set; }
         public double NetFloorArea { get; set; }
+
+        public string SerializedBoundryData { get; set; }
     }
 }

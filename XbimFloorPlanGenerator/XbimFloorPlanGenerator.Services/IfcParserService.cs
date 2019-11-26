@@ -26,6 +26,8 @@ namespace XbimFloorPlanGenerator.Services
         private readonly IWindowRepository _windowRepository;
         private readonly IIfcWallService _ifcWallService;
         private readonly IIfcWindowService _ifcWindowService;
+        private readonly IIfcSpaceBoundriesService _spaceBoundriesService;
+
         private IfcStore model;
         public IfcParserService(
             IIfcSpaceService ifcSpaceService,
@@ -39,6 +41,7 @@ namespace XbimFloorPlanGenerator.Services
             IIfcWindowService ifcWindowService,
             IIfcWallService ifcWallService,
             IIfcGeometryService ifcGeometryService,
+            IIfcSpaceBoundriesService spaceBoundriesService,
             IMapper mapper)
         {
             _ifcGeometryService = ifcGeometryService;
@@ -52,6 +55,7 @@ namespace XbimFloorPlanGenerator.Services
             _ifcWallService = ifcWallService;
             _ifcWindowService = ifcWindowService;
             _windowRepository = windowRepository;
+            _spaceBoundriesService = spaceBoundriesService;
             _mapper = mapper;
         }
 

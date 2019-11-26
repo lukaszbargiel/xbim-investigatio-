@@ -13,6 +13,7 @@ export class FloorComponent implements OnInit  {
 
     private baseUrl: string;
     selectedSpace: IfcSpace;
+    selectedBoundries: IfcBoundry[];
 
     constructor(
         private route: ActivatedRoute,
@@ -33,6 +34,7 @@ export class FloorComponent implements OnInit  {
     selectSpace(spaceId: number) {
         const selectingSpace = this.ifcFloor.spaces.find(space => space.id === spaceId);
         this.selectedSpace = selectingSpace;
+        this.selectedBoundries = <IfcBoundry[]>JSON.parse(selectingSpace.serializedBoundryData);
     }
 
 }
@@ -58,9 +60,16 @@ interface IfcOpening {
     entityLabel: string;
     description: string;
     ifcName: string;        
-    serializedShapeGeometry: string;
+    serializedShapeGeometry: string;    
 }
 
+interface IfcBoundry {
+    IsPhysical: boolean;
+    IsExternal: boolean;
+    BoundryType: string;
+    BounderyArea: number;
+    BoundryName: string;
+}
 export interface IfcSpace {
     id: number;
     entityLabel: string;
@@ -71,6 +80,7 @@ export interface IfcSpace {
     longName: string;
     netFloorArea: number;
     serializedShapeGeometry: string;
+    serializedBoundryData: string;
 }
 
 interface IfcProductShape {
