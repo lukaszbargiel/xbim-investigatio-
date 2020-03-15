@@ -84,7 +84,6 @@ namespace XbimFloorPlanGenerator.Services
         {
             foreach (IfcBuildingStorey storey in building.BuildingStoreys)
             {
-
                 var dbfloor = _mapper.Map<Floor>(storey);
                 dbfloor.BuildingId = buildingId;
 

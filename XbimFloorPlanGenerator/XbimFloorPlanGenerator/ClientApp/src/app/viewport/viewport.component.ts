@@ -160,12 +160,14 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         let polygonPoints: Point[] = [];
 
         const polygonGraphics = new Graphics();
+        //polygonGraphics.lineStyle(2, 0xD5402B, 1);
         polygonGraphics.beginFill(color);
 
         productGeometryData.forEach((polygonSet) => {
 
             polygonSet.Polygons.forEach((polygon) => {
                 polygonPoints = [];
+                var i = 0;
                 polygon.PolygonVertices.forEach((vertice) => {
                     polygonPoints.push(new Point((vertice.X - this.minX) / this.scaleFactor, this.revertFactor - (vertice.Y - this.minY) / this.scaleFactor));
                 });

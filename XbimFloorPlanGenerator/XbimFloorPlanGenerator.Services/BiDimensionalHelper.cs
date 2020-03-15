@@ -20,30 +20,27 @@ namespace XbimFloorPlanGenerator.Services
             var indices = new List<int>();
             vMesh3D.ToPointsWithNormalsAndIndices(out positions, out indices);
 
-            var sameSurfaceIndices = new Dictionary<double, List<int>>();
+            //var sameSurfaceIndices = new Dictionary<double, List<int>>();
 
-            for (var x = 0; x <= indices.Count - 1; x += 3)
-            {
-                var pos1 = positions[indices[x]];
-                var pos2 = positions[indices[x + 1]];
-                var pos3 = positions[indices[x + 2]];
-                if (pos1[2] == pos2[2] && pos2[2] == pos3[2])
-                {
-                    if (!sameSurfaceIndices.ContainsKey(pos1[2]))
-                    {
-                        sameSurfaceIndices.Add(pos1[2], new List<int>());
-                    }
-                    sameSurfaceIndices[pos1[2]].Add(indices[x]);
-                    sameSurfaceIndices[pos1[2]].Add(indices[x + 1]);
-                    sameSurfaceIndices[pos1[2]].Add(indices[x + 2]);
-                }
-            }
+            //for (var x = 0; x <= indices.Count - 1; x += 3)
+            //{
+            //    var pos1 = positions[indices[x]];
+            //    var pos2 = positions[indices[x + 1]];
+            //    var pos3 = positions[indices[x + 2]];
+            //    if (pos1[2] == pos2[2] && pos2[2] == pos3[2])
+            //    {
+            //        if (!sameSurfaceIndices.ContainsKey(pos1[2]))
+            //        {
+            //            sameSurfaceIndices.Add(pos1[2], new List<int>());
+            //        }
+            //        sameSurfaceIndices[pos1[2]].Add(indices[x]);
+            //        sameSurfaceIndices[pos1[2]].Add(indices[x + 1]);
+            //        sameSurfaceIndices[pos1[2]].Add(indices[x + 2]);
+            //    }
+            //}
 
-            for (var x = 0; x <= positions.Count - 1; x++)
-                vPoint2DCol.Add(new Point2D(positions[x][0], positions[x][1]));
-
-            var vNewIndices = new List<int>();
-            var vNewPos = new List<Point2D>();
+            for (var x = 0; x <= vMesh3D.Vertices.Count - 1; x++)
+                vPoint2DCol.Add(new Point2D(vMesh3D.Vertices[x].X, vMesh3D.Vertices[x].Y));
 
             int vIndex1;
             int vIndex2;
@@ -52,14 +49,17 @@ namespace XbimFloorPlanGenerator.Services
             List<Triangle> vListTriangles = new List<Triangle>();
             Point2D p1, p2, p3;
 
-            foreach (var sameSurface in sameSurfaceIndices)
+            //if (!sameSurfaceIndices.Any())
+            //    return finalPolygons;
+            foreach(var face in vMesh3D.Faces)
             {
-                var shapePolygon = new Polygon();
-                for (var x = 0; x <= sameSurface.Value.Count - 1; x += 3)
+                var vNewIndices = new List<int>();
+                var vNewPos = new List<Point2D>();                
+                for (var x = 0; x <= face.Indices.Count - 1; x += 3)
                 {
-                    p1 = vPoint2DCol[sameSurface.Value[x]];
-                    p2 = vPoint2DCol[sameSurface.Value[x + 1]];
-                    p3 = vPoint2DCol[sameSurface.Value[x + 2]];
+                    p1 = vPoint2DCol[face.Indices[x]];
+                    p2 = vPoint2DCol[face.Indices[x + 1]];
+                    p3 = vPoint2DCol[face.Indices[x + 2]];
                     vTriangle = new Triangle(p1, p2, p3);
                     if (!vTriangle.IsValid)
                         continue;
@@ -94,17 +94,33 @@ namespace XbimFloorPlanGenerator.Services
                         }
                     }
                 }
-                /// lets try this feature
-
-                var boundaryPath = EdgeHelpers.GetEdges(vNewIndices.ToArray()).FindBoundary().SortEdges();
-
-                foreach (var pathStep in boundaryPath)
+                if(vNewIndices.Count == 0 || vNewPos.Count == 0)
                 {
-                    shapePolygon.PolygonVertices.Add(vNewPos[pathStep.v1]);
+                    continue;
                 }
-                finalPolygons.Add(shapePolygon);
+
+                for (int i = 0; i < vNewIndices.Count; i += 3)
+                {
+                    var shapePolygon = new Polygon();
+                    int v1 = vNewIndices[i];
+                    int v2 = vNewIndices[i + 1];
+                    int v3 = vNewIndices[i + 2];
+                    shapePolygon.PolygonVertices.Add(vNewPos[v1]);
+                    shapePolygon.PolygonVertices.Add(vNewPos[v2]);
+                    shapePolygon.PolygonVertices.Add(vNewPos[v3]);
+                    finalPolygons.Add(shapePolygon);
+                }
+                //var boundaryPath = EdgeHelpers.GetEdges(vNewIndices.ToArray()).FindBoundary().SortEdges();
+
+                //foreach (var pathStep in boundaryPath)
+                //{
+                //    shapePolygon.PolygonVertices.Add(vNewPos[pathStep.v1]);
+                //}
+                //shapePolygon.PolygonVertices.Add(vNewPos[boundaryPath[boundaryPath.Count - 1].v2]);
+                
             }
 
+            /// lets try this feature
 
             return finalPolygons;
         }

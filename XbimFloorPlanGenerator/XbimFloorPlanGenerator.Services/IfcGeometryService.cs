@@ -53,7 +53,20 @@ namespace XbimFloorPlanGenerator.Services
                             List<XbimPoint3D> vertices = mesh.Vertices as List<XbimPoint3D>;
                             var transformedMesh = mesh.Transform(shapeInstance.Transformation);
 
-                            var meshPolygons = BiDimensionalHelper.ConvertMesh3DTo2DPolygons(transformedMesh, true);
+                            // https://books.google.pl/books?id=Z06wDwAAQBAJ&pg=PA250&lpg=PA250&dq=multiview+projection+C%23&source=bl&ots=B2UTC9POLX&sig=ACfU3U380FDBK58fv3hF1OPCfpL9OJdhZQ&hl=pl&sa=X&ved=2ahUKEwj_pZbJ8ZzoAhUBy6YKHWizAYcQ6AEwAHoECAYQAQ#v=onepage&q=multiview%20projection%20C%23&f=false
+
+                            var topViewMatrixTransformation = XbimMatrix3D.Identity;
+                            // side view
+                            //topViewMatrixTransformation.M22 = 0;
+                            //topViewMatrixTransformation.M33 = 0;
+                            //topViewMatrixTransformation.M32 = -1;
+
+                            //topViewMatrixTransformation.M11 = 0;
+                            topViewMatrixTransformation.M33 = 0;
+                            //topViewMatrixTransformation.M31 = -1;
+
+                            var topViewTransformation = transformedMesh.Transform(topViewMatrixTransformation);
+                            var meshPolygons = BiDimensionalHelper.ConvertMesh3DTo2DPolygons(topViewTransformation, true);
                             shapePolygonSet.Polygons = meshPolygons;
 
                             productPolygonSets.Add(shapePolygonSet);
