@@ -2,62 +2,73 @@
   {{ifcFloor.ifcName}} ({{ifcFloor.entityLabel}})
 </h1>
 <p *ngIf="!ifcFloor"><em>Loading floor data...</em></p>
-<div class="container">
-  <div class="row">
-    <div class="col-sm">
-      <div *ngIf="ifcFloor">
-        <select [(ngModel)]="selectedSpace">
-          <option *ngFor="let space of ifcFloor.spaces" [ngValue]="space">
-            {{space.longName}} ({{space.ifcName}})
-          </option>
-        </select>
+
+<div class="row">
+  <div class="col-md-9" style="height:600px">
+    <app-view-port #viewport [selected-space]=selectedSpace (selectSpaceEvent)="selectSpace($event)" (colorCategoriesEvent)="colorCategories($event)"></app-view-port>
+    <div class="container">
+      <div class="col-md">
+        <div *ngIf="false">
+          <select [(ngModel)]="selectedSpace">
+            <option *ngFor="let space of ifcFloor.spaces" [ngValue]="space">
+              {{space.longName}} ({{space.ifcName}})
+            </option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md" *ngIf="selectedSpace">
+          <dl class="row">
+            <dd class="col-sm-3">Space Name</dd>
+            <dt class="col-sm-3">{{selectedSpace.ifcName}}</dt>
+            <dd class="col-sm-3">Label</dd>
+            <dt class="col-sm-3">{{selectedSpace.entityLabel}}</dt>
+            <dd class="col-sm-3">Description</dd>
+            <dt class="col-sm-3">{{selectedSpace.longName}}</dt>
+            <dd class="col-sm-3">Floor Area (net)</dd>
+            <dt class="col-sm-3">{{selectedSpace.netFloorArea.toFixed(2)}}</dt>
+            <dd class="col-sm-3">Floor Area (gross)</dd>
+            <dt class="col-sm-3">{{selectedSpace.grossFloorArea.toFixed(2)}}</dt>
+          </dl>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Type</th>
+                <th scope="col">Name</th>
+                <th scope="col">External</th>
+                <th scope="col">Phisical</th>
+                <th scope="col">Calculated Area m<sup>2</sup></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let boundry of selectedBoundries">
+                <th>{{boundry.BoundryName}}</th>
+                <td>{{boundry.BoundryType}}</td>
+                <td>{{boundry.IsExternal ? 'Yes' : 'No'}}</td>
+                <td>
+                  {{boundry.IsPhysical ? 'Yes' : 'No'}}
+                </td>
+                <td>
+                  {{boundry.BounderyArea.toFixed(2)}}
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-    <div class="col-sm" *ngIf="selectedSpace">
-      <dl class="row">
-        <dd class="col-sm-9">Space Name</dd>
-        <dt class="col-sm-3">{{selectedSpace.ifcName}}</dt>
-        <dd class="col-sm-9">Label</dd>
-        <dt class="col-sm-3">{{selectedSpace.entityLabel}}</dt>
-        <dd class="col-sm-9">Description</dd>
-        <dt class="col-sm-3">{{selectedSpace.longName}}</dt>
-        <dd class="col-sm-9">Floor Area (net)</dd>
-        <dt class="col-sm-3">{{selectedSpace.netFloorArea.toFixed(2)}}</dt>
-        <dd class="col-sm-9">Floor Area (gross)</dd>
-        <dt class="col-sm-3">{{selectedSpace.grossFloorArea.toFixed(2)}}</dt>
-      </dl>
+  </div>
+  <div class="col-md-3">
+    <dl class="legend" *ngFor="let categoryColors of spaceCategoriesColors | keyvalue">
+      <dt [ngStyle]="{'background-color': '#' + categoryColors.value.toString(16)}"></dt>
+      <dd>{{categoryColors.key}} </dd>
+    </dl>
 
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Type</th>
-            <th scope="col">Name</th>
-            <th scope="col">External</th>
-            <th scope="col">Phisical</th>
-            <th scope="col">Calculated Area m<sup>2</sup></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let boundry of selectedBoundries">
-            <th>{{boundry.BoundryName}}</th>
-            <td>{{boundry.BoundryType}}</td>
-            <td>{{boundry.IsExternal ? 'Yes' : 'No'}}</td>
-            <td>
-              {{boundry.IsPhysical ? 'Yes' : 'No'}}
-            </td>
-            <td>
-              {{boundry.BounderyArea.toFixed(2)}}
-            </td>
-          </tr>
-          
-        </tbody>
-        </table>
-    </div>
   </div>
 </div>
-<div style="width:100%; height:1000px">
-  <app-view-port #viewport [selected-space]=selectedSpace (selectSpaceEvent)="selectSpace($event)"></app-view-port>
-</div>
+
 
 
 

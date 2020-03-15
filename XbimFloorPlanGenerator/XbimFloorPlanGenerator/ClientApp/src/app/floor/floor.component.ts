@@ -12,6 +12,8 @@ export class FloorComponent implements OnInit  {
     public ifcFloor: IfcFloor;
 
     private baseUrl: string;
+    private spaceCategoriesColors: { [spaceName: string]: number };
+
     selectedSpace: IfcSpace;
     selectedBoundries: IfcBoundry[];
 
@@ -35,6 +37,10 @@ export class FloorComponent implements OnInit  {
         const selectingSpace = this.ifcFloor.spaces.find(space => space.id === spaceId);
         this.selectedSpace = selectingSpace;
         this.selectedBoundries = <IfcBoundry[]>JSON.parse(selectingSpace.serializedBoundryData);
+    }
+
+    colorCategories(spaceColors: { [spaceName: string]: number }) {
+        this.spaceCategoriesColors = spaceColors;
     }
 
 }

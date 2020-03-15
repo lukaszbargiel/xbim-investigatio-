@@ -21,3 +21,21 @@ code {
   margin-left: 15px;
   line-height: 36px;
 }
+
+.legend {
+  list-style: none;
+}
+
+  .legend li {
+    float: left;
+    margin-right: 10px;
+  }
+
+  .legend dt {
+    float: left;
+    margin-top: 6px;
+    margin-right: 6px;
+    margin-left: 20px;
+    width: 12px;
+    height: 12px;
+  }

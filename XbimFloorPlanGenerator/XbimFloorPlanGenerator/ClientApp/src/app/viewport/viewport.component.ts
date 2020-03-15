@@ -17,15 +17,17 @@ export class ViewPortComponent implements OnInit, OnChanges  {
     private scaleFactor = 1;
     private revertFactor = 1;
     private ifcFloor: IfcFloor;
+    private spaceColors: { [spaceName: string]: number; } = {};
+
     public spaceGraphics: { [id: number]: Graphics; } = {};
     public spaceLabelStyle = new TextStyle({
-        fontSize: 8,
+        fontSize: 12,
         wordWrap: true
     });
 
     constructor(private elementRef: ElementRef, private ngZone: NgZone) { }
     @Output() selectSpaceEvent = new EventEmitter<number>();
-
+    @Output() colorCategoriesEvent = new EventEmitter<{ [spaceName: string]: number; }>();
     ngOnChanges(changes: SimpleChanges) {
         const currentItem: SimpleChange = changes.selectedSpace;
         if (currentItem.previousValue) {
@@ -95,7 +97,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
         this.revertFactor = ((this.maxY - this.minY) / this.scaleFactor);
     }
-
+    
     redraw(floorDefinition: IfcFloor): void {
 
         if (!floorDefinition) {
@@ -106,20 +108,31 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         this.setTransformFactors(floorDefinition);
 
         floorDefinition.spaces.forEach((space) => {
+            if (!this.spaceColors[space.longName]) {
+                this.spaceColors[space.longName] = Math.random() * 0xc0c0c0 << 0;
+            }
             const productGeometryData = JSON.parse(space.serializedShapeGeometry);
-            const spaceGraphic = this.generateGraphics(productGeometryData, 0xffffff, space.id);
+            const spaceGraphic = this.generateGraphics(productGeometryData, this.spaceColors[space.longName], 0.5);
             const bounds = spaceGraphic.getBounds();
 
             // we cannot simply add text - it needs to be adjust to container size
-            const spaceName = new Text(space.longName, this.spaceLabelStyle);
-            spaceName.resolution = 4;
-            spaceName.style.wordWrap = true;
-            spaceName.style.wordWrapWidth = bounds.width;
-            //while (spaceName.width > bounds.width) spaceName.style.fontSize--;
-            spaceName.x = bounds.x + (bounds.width - spaceName.width) / 2;
-            spaceName.y = bounds.y + bounds.height / 2;
-            spaceGraphic.addChild(spaceName);
+            // add space name
+            //const spaceName = new Text(space.longName, this.spaceLabelStyle);
+            //spaceName.resolution = 4;
+            //spaceName.style.wordWrap = true;
+            //spaceName.style.wordWrapWidth = bounds.width;
 
+            ////let fontSize = spaceName.style.fontSize;
+            ////while (spaceName.width > bounds.width) spaceName.style.fontSize--;
+
+            //spaceName.style.fontSize = 12 / this.viewport.scale.x;
+            //if (spaceName.width < bounds.width)  {
+            //    //while (spaceName.width > (bounds.width * this.viewport.scale.x)) spaceName.style.fontSize--;
+            //    //
+            //    spaceName.x = bounds.x + (bounds.width - spaceName.width) / 2;
+            //    spaceName.y = bounds.y + bounds.height / 2;
+            //    spaceGraphic.addChild(spaceName);
+            //}
             spaceGraphic.on('pointerover', (e) => {
                 const colorMatrix = this.getColorMatrix(0x94ffa8);
                 e.currentTarget.filters = [colorMatrix];
@@ -141,10 +154,10 @@ export class ViewPortComponent implements OnInit, OnChanges  {
 
             this.spaceGraphics[space.id] = spaceGraphic;
         });
-
+        this.colorCategoriesEvent.next(this.spaceColors);
         floorDefinition.walls.forEach((wall) => {
             const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
-            const wallGraphic = this.generateGraphics(productGeometryData, 0x666666, wall.id);
+            const wallGraphic = this.generateGraphics(productGeometryData, 0x666666);
             this.viewport.addChild(wallGraphic);
 
             wall.openings.forEach((opening) => {
@@ -156,7 +169,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
 
     }
 
-    generateGraphics(productGeometryData: any, color?: number, shapeId?: number): Graphics {
+    generateGraphics(productGeometryData: any, color?: number, alpha: number = 1): Graphics {
         let polygonPoints: Point[] = [];
 
         const polygonGraphics = new Graphics();
@@ -195,7 +208,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         const b = tint & 0xFF;
         color.matrix[0] = r / 255;
         color.matrix[6] = g / 255;
-        color.matrix[12] = b / 255;
+        color.matrix[12] = b / 255;        
         return color;
     }
     ngOnInit(): void {
@@ -209,13 +222,11 @@ export class ViewPortComponent implements OnInit, OnChanges  {
 
         this.elementRef.nativeElement.appendChild(this.app.view);
 
-        this.elementRef.nativeElement.addEventListener("wheel", e => {
-
-            //if (this.ifcFloor) {
-            //    console.log('redraw');
+        this.elementRef.nativeElement.addEventListener("wheel", e => {            
+            //if (this.ifcFloor) {                
             //    this.redraw(this.ifcFloor);
             //}
-            //event.preventDefault()
+            e.preventDefault()
         });
 
         this.viewport = new Viewport({
