@@ -20,7 +20,7 @@ namespace XbimFloorPlanGenerator.Data.Repositories
         {
             return _dbContext.Set<Floor>()
                 .Include(p => p.Spaces)
-                //.Include(p => p.Windows)
+                .Include(p => p.Stairs)
                 .Include(p => p.Walls)
                     .ThenInclude(y => y.Openings)
                         .FirstOrDefault(e => e.Id == id);

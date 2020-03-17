@@ -232,6 +232,38 @@ namespace XbimFloorPlanGenerator.Migrations
                     b.ToTable("Space");
                 });
 
+            modelBuilder.Entity("XbimFloorPlanGenerator.Data.Entities.Stair", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EntityLabel")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("FloorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IfcId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IfcName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SerializedShapeGeometry")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FloorId");
+
+                    b.ToTable("Stair");
+                });
+
             modelBuilder.Entity("XbimFloorPlanGenerator.Data.Entities.Wall", b =>
                 {
                     b.Property<int>("Id")
@@ -351,6 +383,15 @@ namespace XbimFloorPlanGenerator.Migrations
                 {
                     b.HasOne("XbimFloorPlanGenerator.Data.Entities.Floor", "Floor")
                         .WithMany("Spaces")
+                        .HasForeignKey("FloorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("XbimFloorPlanGenerator.Data.Entities.Stair", b =>
+                {
+                    b.HasOne("XbimFloorPlanGenerator.Data.Entities.Floor", "Floor")
+                        .WithMany("Stairs")
                         .HasForeignKey("FloorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

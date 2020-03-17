@@ -20,6 +20,8 @@ namespace XbimFloorPlanGenerator.Data.Entities
         public string Description { get; set; }
 
         public List<Wall> Walls { get; set; }
+
+        public List<Stair> Stairs { get; set; }
         public List<Window> Windows { get; set; }
         public List<Space> Spaces { get; set; }
 

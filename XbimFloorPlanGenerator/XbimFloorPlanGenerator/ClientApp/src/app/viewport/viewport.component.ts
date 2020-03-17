@@ -1,4 +1,4 @@
-import { OnInit, Component, ElementRef, NgZone, Input, OnChanges, SimpleChanges, SimpleChange, Output, EventEmitter, ViewChild } from '@angular/core';
+import { OnInit, Component, ElementRef, NgZone, Input, OnChanges, SimpleChanges, SimpleChange, Output, EventEmitter, ViewChild, asNativeElements } from '@angular/core';
 import { Application, Sprite, Text, Polygon, Point, Graphics, filters, TextStyle } from 'pixi.js';
 import { Viewport } from 'pixi-viewport'
 import { IfcFloor, IfcSpace } from '../floor/floor.component';
@@ -6,7 +6,7 @@ import { IfcFloor, IfcSpace } from '../floor/floor.component';
     selector: 'app-view-port',
     template: ''
 })
-export class ViewPortComponent implements OnInit, OnChanges  {
+export class ViewPortComponent implements OnInit, OnChanges {
     @Input('selected-space') selectedSpace: IfcSpace;
 
     public app: Application;
@@ -33,16 +33,16 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         if (currentItem.previousValue) {
             const unselectedSpaceGraphic = this.spaceGraphics[currentItem.previousValue.id];
             const colorMatrix = this.getColorMatrix(0xffffff);
-            unselectedSpaceGraphic.filters = [colorMatrix];        
+            unselectedSpaceGraphic.filters = [colorMatrix];
         }
         if (currentItem.currentValue) {
-            const selectedSpaceGraphic = this.spaceGraphics[currentItem.currentValue.id];                    
+            const selectedSpaceGraphic = this.spaceGraphics[currentItem.currentValue.id];
             const colorMatrix = this.getColorMatrix(0x94ffa8);
-            selectedSpaceGraphic.filters = [colorMatrix];        
+            selectedSpaceGraphic.filters = [colorMatrix];
         }
 
     }
-    
+
     // This method let us to calculate factors that are later use to scale the given points to match canvas    
     setTransformFactors(floorDefinition: IfcFloor) {
         let maxX = 0;
@@ -97,7 +97,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
         this.revertFactor = ((this.maxY - this.minY) / this.scaleFactor);
     }
-    
+
     redraw(floorDefinition: IfcFloor): void {
 
         if (!floorDefinition) {
@@ -155,6 +155,13 @@ export class ViewPortComponent implements OnInit, OnChanges  {
             this.spaceGraphics[space.id] = spaceGraphic;
         });
         this.colorCategoriesEvent.next(this.spaceColors);
+
+        floorDefinition.stairs.forEach((stair) => {
+            const productGeometryData = JSON.parse(stair.serializedShapeGeometry);
+            this.drawStairs(productGeometryData, 0x666666);
+
+        });
+
         floorDefinition.walls.forEach((wall) => {
             const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
             const wallGraphic = this.generateGraphics(productGeometryData, 0x666666);
@@ -165,15 +172,100 @@ export class ViewPortComponent implements OnInit, OnChanges  {
                 const openingGraphic = this.generateGraphics(data, 0xe6f2ff);
                 this.viewport.addChild(openingGraphic);
             });
-        });        
+        });
 
     }
+
+    drawStairs(productGeometryData: any, color?: number, alpha: number = 1) {
+        let polygonPoints: Point[] = [];
+
+        productGeometryData.forEach((polygonSet) => {
+            var sortedVertices = this.sortVertices(polygonSet.Polygons);
+
+            const polygonGraphics = new Graphics();
+            polygonGraphics.lineStyle(1, 0xD5402B, 1, 1, true);
+            //polygonGraphics.beginFill(stairColor);
+            polygonPoints = [];
+            sortedVertices.forEach((vertice) => {
+                polygonPoints.push(new Point((vertice.X - this.minX) / this.scaleFactor, this.revertFactor - (vertice.Y - this.minY) / this.scaleFactor));
+            });
+
+            const ifcPolygon = new Polygon(polygonPoints);
+            polygonGraphics.drawPolygon(ifcPolygon);
+            polygonGraphics.interactive = true;
+            polygonGraphics.buttonMode = true;
+            //polygonGraphics.endFill();
+            this.viewport.addChild(polygonGraphics);
+
+
+
+        });
+
+    }
+
+    sortVertices(polygons: any[]): any[] {
+        var x = 0,
+            y = 0,
+            i,
+            j,
+            f,
+            point1,
+            point2;
+        var vertices = polygons.map(p => p.PolygonVertices).reduce(function (a, b) { return a.concat(b); });
+        var distinctVertices = [...new Set(vertices.map(o => JSON.stringify(o)))].map(o => JSON.parse(String(o)));
+
+        for (i = 0, j = distinctVertices.length - 1; i < distinctVertices.length; j = i, i++) {
+            point1 = distinctVertices[i];
+            point2 = distinctVertices[j];
+            f = point1.X * point2.Y - point2.X * point1.Y;
+            x += (point1.X + point2.X) * f;
+            y += (point1.Y + point2.Y) * f;
+        }
+
+        f = this.calculateArea(distinctVertices) * 6;
+        //debugger;
+        var center = f == 0 ? new Point(x / f, y / f) : new Point(0,0);
+        var startAng;
+        distinctVertices.forEach(point => {
+            var ang = Math.atan2(point.Y - center.y, point.X - center.x);
+            if (!startAng) { startAng = ang }
+            else {
+                if (ang < startAng) {  // ensure that all points are clockwise of the start point
+                    ang += Math.PI * 2;
+                }
+            }
+            point.angle = ang; // add the angle to the point
+        });
+
+
+        // Sort clockwise;
+        return distinctVertices.sort((a, b) => a.angle - b.angle);
+    };
+
+    calculateArea(vertices: any[]) {
+        var area = 0,
+            i,
+            j,
+            point1,
+            point2;
+
+        for (i = 0, j = vertices.length - 1; i < vertices.length; j = i, i++) {
+            point1 = vertices[i];
+            point2 = vertices[j];
+            area += point1.X * point2.Y;
+            area -= point1.Y * point2.X;
+        }
+        area /= 2;
+
+        return area;
+    };
+
 
     generateGraphics(productGeometryData: any, color?: number, alpha: number = 1): Graphics {
         let polygonPoints: Point[] = [];
 
         const polygonGraphics = new Graphics();
-        //polygonGraphics.lineStyle(2, 0xD5402B, 1);
+        //polygonGraphics.lineStyle(1, 0xD5402B, 1);
         polygonGraphics.beginFill(color);
 
         productGeometryData.forEach((polygonSet) => {
@@ -208,7 +300,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
         const b = tint & 0xFF;
         color.matrix[0] = r / 255;
         color.matrix[6] = g / 255;
-        color.matrix[12] = b / 255;        
+        color.matrix[12] = b / 255;
         return color;
     }
     ngOnInit(): void {
@@ -222,7 +314,7 @@ export class ViewPortComponent implements OnInit, OnChanges  {
 
         this.elementRef.nativeElement.appendChild(this.app.view);
 
-        this.elementRef.nativeElement.addEventListener("wheel", e => {            
+        this.elementRef.nativeElement.addEventListener("wheel", e => {
             //if (this.ifcFloor) {                
             //    this.redraw(this.ifcFloor);
             //}

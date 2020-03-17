@@ -50,7 +50,15 @@ export interface IfcFloor {
     entityLabel: string;
     description: string;
     walls: IfcWall[];
+    stairs: IfcStair[];
     spaces: IfcSpace[];
+}
+interface IfcStair {
+    id: number;
+    entityLabel: string;
+    description: string;
+    productShapes: IfcProductShape[]
+    serializedShapeGeometry: string;
 }
 interface IfcWall {
     id: number;

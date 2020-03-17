@@ -44,6 +44,14 @@ namespace XbimFloorPlanGenerator.Services.DTO.Mapper
 .ForMember(dest => dest.IsExternal, opt => opt.MapFrom(src => (bool) src.IsExternal))
 .ForMember(dest => dest.WallSideArea, opt => opt.MapFrom(src => (double) (src.GetWallSideArea ?? 0)));
 
+            CreateMap<IfcStair, Stair>()
+.ForMember(dest => dest.IfcId, opt => opt.MapFrom(src => src.GlobalId.Value.ToString()))
+.ForMember(dest => dest.IfcName, opt => opt.MapFrom(src => src.FriendlyName));
+
+            CreateMap<IfcStairFlight, Stair>()
+.ForMember(dest => dest.IfcId, opt => opt.MapFrom(src => src.GlobalId.Value.ToString()))
+.ForMember(dest => dest.IfcName, opt => opt.MapFrom(src => src.FriendlyName));
+
             CreateMap<IfcWindow, Window>()
 .ForMember(dest => dest.IfcId, opt => opt.MapFrom(src => src.GlobalId.Value.ToString()))
 .ForMember(dest => dest.IfcName, opt => opt.MapFrom(src => src.FriendlyName))

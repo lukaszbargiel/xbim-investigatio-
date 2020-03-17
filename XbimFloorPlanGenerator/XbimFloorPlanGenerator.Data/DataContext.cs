@@ -29,6 +29,10 @@ namespace XbimFloorPlanGenerator.Data
                 .HasOne(p => p.Floor)
                 .WithMany(b => b.Walls);
 
+            modelBuilder.Entity<Stair>()
+                .HasOne(p => p.Floor)
+                .WithMany(b => b.Stairs);
+
             modelBuilder.Entity<Window>()
                 .HasOne(p => p.Floor)
                 .WithMany(b => b.Windows);

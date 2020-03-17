@@ -24,7 +24,9 @@ namespace XbimFloorPlanGenerator.Services
         private readonly IFloorRepository _floorRepository;
         private readonly IWallRepository _wallRepository;
         private readonly IWindowRepository _windowRepository;
+        private readonly IStairRepository _stairRepository;
         private readonly IIfcWallService _ifcWallService;
+        private readonly IIfcStairService _ifcStairService;
         private readonly IIfcWindowService _ifcWindowService;
         private readonly IIfcSpaceBoundriesService _spaceBoundriesService;
 
@@ -38,8 +40,10 @@ namespace XbimFloorPlanGenerator.Services
             IFloorRepository floorRepository,
             IWallRepository wallRepository,
             IWindowRepository windowRepository,
+            IStairRepository stairRepository,
             IIfcWindowService ifcWindowService,
             IIfcWallService ifcWallService,
+            IIfcStairService ifcStairService,
             IIfcGeometryService ifcGeometryService,
             IIfcSpaceBoundriesService spaceBoundriesService,
             IMapper mapper)
@@ -53,6 +57,8 @@ namespace XbimFloorPlanGenerator.Services
             _floorRepository = floorRepository;
             _wallRepository = wallRepository;
             _ifcWallService = ifcWallService;
+            _stairRepository = stairRepository;
+            _ifcStairService = ifcStairService;
             _ifcWindowService = ifcWindowService;
             _windowRepository = windowRepository;
             _spaceBoundriesService = spaceBoundriesService;
@@ -91,16 +97,44 @@ namespace XbimFloorPlanGenerator.Services
 
                 ExtractWalls(storey, floorId);
                 ExtractWindows(storey, floorId);
+                ExtractStairs(storey, floorId);                
                 ExtractSpaces(storey, floorId);
             }
         }
 
-        private void ExtractWindows(IfcBuildingStorey storey, int floorId) {
-            foreach (var window in storey.ContainsElements.SelectMany(rel => rel.RelatedElements).OfType<IfcWindow>()                
+        private void ExtractWindows(IfcBuildingStorey storey, int floorId)
+        {
+            foreach (var window in storey.ContainsElements.SelectMany(rel => rel.RelatedElements).OfType<IfcWindow>()
                 .OrderBy(o => o.GetType().Name))
             {
                 var dbWindow = _ifcWindowService.CreateWindow(window, floorId);
                 _windowRepository.Create(dbWindow);
+            }
+        }
+
+        private void ExtractStairFlight(IfcStair stair, int floorId)
+        {
+            foreach (var substair in stair.IsDecomposedBy.SelectMany(rel => rel.RelatedObjects).OfType<IfcStairFlight>()
+                .Where(p => !p.GetType().IsSubclassOf(typeof(IfcFeatureElementSubtraction))) // Ignore Openings  
+                .OrderBy(o => o.GetType().Name))
+            {
+                var dbstair = _ifcStairService.CreateStair(substair, floorId);
+                _stairRepository.Create(dbstair);
+            }
+        }
+        private void ExtractStairs(IfcBuildingStorey storey, int floorId)
+        {
+            foreach (var stair in storey.ContainsElements.SelectMany(rel => rel.RelatedElements).OfType<IfcStair>()
+                .Where(p => !p.GetType().IsSubclassOf(typeof(IfcFeatureElementSubtraction))) // Ignore Openings  
+                .OrderBy(o => o.GetType().Name))
+            {
+                if (stair.IsDecomposedBy.Any())
+                {
+                    ExtractStairFlight(stair, floorId);
+                }
+
+                var dbstair = _ifcStairService.CreateStair(stair, floorId);
+                _stairRepository.Create(dbstair);
             }
         }
         private void ExtractWalls(IfcBuildingStorey storey, int floorId)
