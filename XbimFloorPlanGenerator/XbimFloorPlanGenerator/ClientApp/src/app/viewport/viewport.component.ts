@@ -2,6 +2,7 @@ import { OnInit, Component, ElementRef, NgZone, Input, OnChanges, SimpleChanges,
 import { Application, Sprite, Text, Polygon, Point, Graphics, filters, TextStyle } from 'pixi.js';
 import { Viewport } from 'pixi-viewport'
 import { IfcFloor, IfcSpace } from '../floor/floor.component';
+import * as PolyBool from 'polybooljs'
 @Component({
     selector: 'app-view-port',
     template: ''
@@ -47,51 +48,52 @@ export class ViewPortComponent implements OnInit, OnChanges {
     setTransformFactors(floorDefinition: IfcFloor) {
         let maxX = 0;
         this.maxY = 0;
-
+        // this can be easily refactored to avoid 3 neste loops, by combining map/reduce methods
         floorDefinition.walls.forEach((wall) => {
             const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
-            productGeometryData.forEach((polygonSet) => {
-                polygonSet.Polygons.forEach((polygon) => {
+            productGeometryData.forEach((productShape) => {
+                productShape.f.forEach((face) => {
+                    face.p.forEach((polygon) => {
 
-                    let tmpMinX, tmpMinY = 99999999;
-                    let tmpMaxX, tmpMaxY = 0;
+                        let tmpMinX, tmpMinY = 99999999;
+                        let tmpMaxX, tmpMaxY = 0;
 
-                    const minWallX = polygon.PolygonVertices.reduce(function (prev, curr) {
-                        return prev.X < curr.X ? prev : curr;
+                        const minWallX = polygon.pv.reduce(function (prev, curr) {
+                            return prev.X < curr.X ? prev : curr;
+                        });
+                        const minWallY = polygon.pv.reduce(function (prev, curr) {
+                            return prev.Y < curr.Y ? prev : curr;
+                        });
+                        const maxWallX = polygon.pv.reduce(function (prev, curr) {
+                            return prev.X > curr.X ? prev : curr;
+                        });
+                        const maxWallY = polygon.pv.reduce(function (prev, curr) {
+                            return prev.Y > curr.Y ? prev : curr;
+                        });
+                        tmpMinX = minWallX.X;
+                        tmpMinY = minWallY.Y
+                        tmpMaxX = maxWallX.X;
+                        tmpMaxY = maxWallY.Y;
+
+
+
+                        if (this.minX > tmpMinX) {
+                            this.minX = tmpMinX;
+                        }
+                        if (maxX < tmpMaxX) {
+                            maxX = tmpMaxX;
+                        }
+                        if (this.minY > tmpMinY) {
+                            this.minY = tmpMinY;
+                        }
+                        if (this.maxY < tmpMaxY) {
+                            this.maxY = tmpMaxY;
+                        }
                     });
-                    const minWallY = polygon.PolygonVertices.reduce(function (prev, curr) {
-                        return prev.Y < curr.Y ? prev : curr;
-                    });
-                    const maxWallX = polygon.PolygonVertices.reduce(function (prev, curr) {
-                        return prev.X > curr.X ? prev : curr;
-                    });
-                    const maxWallY = polygon.PolygonVertices.reduce(function (prev, curr) {
-                        return prev.Y > curr.Y ? prev : curr;
-                    });
-                    tmpMinX = minWallX.X;
-                    tmpMinY = minWallY.Y
-                    tmpMaxX = maxWallX.X;
-                    tmpMaxY = maxWallY.Y;
-
-
-
-                    if (this.minX > tmpMinX) {
-                        this.minX = tmpMinX;
-                    }
-                    if (maxX < tmpMaxX) {
-                        maxX = tmpMaxX;
-                    }
-                    if (this.minY > tmpMinY) {
-                        this.minY = tmpMinY;
-                    }
-                    if (this.maxY < tmpMaxY) {
-                        this.maxY = tmpMaxY;
-                    }
                 });
-
             });
         });
-
+        debugger;
         let scaleFactorX = (maxX - this.minX) / 1000;
         let scaleFactorY = (this.maxY - this.minY) / 1000;
         this.scaleFactor = Math.max(scaleFactorX, scaleFactorY);
@@ -103,6 +105,8 @@ export class ViewPortComponent implements OnInit, OnChanges {
         if (!floorDefinition) {
             return;
         }
+        //PolyBool.epsilon(0.00001);
+
         this.ifcFloor = floorDefinition;
 
         this.setTransformFactors(floorDefinition);
@@ -111,9 +115,10 @@ export class ViewPortComponent implements OnInit, OnChanges {
             if (!this.spaceColors[space.longName]) {
                 this.spaceColors[space.longName] = Math.random() * 0xc0c0c0 << 0;
             }
-            const productGeometryData = JSON.parse(space.serializedShapeGeometry);
-            const spaceGraphic = this.generateGraphics(productGeometryData, this.spaceColors[space.longName], 0.5);
-            const bounds = spaceGraphic.getBounds();
+
+            const spaceGraphic = this.drawProductV2(space, this.spaceColors[space.longName], 0.5, true);
+            
+            //const bounds = spaceGraphic.getBounds();
 
             // we cannot simply add text - it needs to be adjust to container size
             // add space name
@@ -157,139 +162,94 @@ export class ViewPortComponent implements OnInit, OnChanges {
         this.colorCategoriesEvent.next(this.spaceColors);
 
         floorDefinition.stairs.forEach((stair) => {
-            const productGeometryData = JSON.parse(stair.serializedShapeGeometry);
-            this.drawStairs(productGeometryData, 0x666666);
+            //console.log(stair.ifcId)
+            this.drawProductV2(stair, 0x666666);
 
         });
 
         floorDefinition.walls.forEach((wall) => {
-            const productGeometryData = JSON.parse(wall.serializedShapeGeometry);
-            const wallGraphic = this.generateGraphics(productGeometryData, 0x666666);
-            this.viewport.addChild(wallGraphic);
-
-            wall.openings.forEach((opening) => {
-                const data = JSON.parse(opening.serializedShapeGeometry);
-                const openingGraphic = this.generateGraphics(data, 0xe6f2ff);
-                this.viewport.addChild(openingGraphic);
-            });
+            this.drawProductV2(wall, 0x666666);
         });
 
     }
 
-    drawStairs(productGeometryData: any, color?: number, alpha: number = 1) {
+    drawProductV2(ifcProduct: any, color?: number, alpha: number = 1, fill: boolean = false) {
+        const productGeometryData = JSON.parse(ifcProduct.serializedShapeGeometry);
         let polygonPoints: Point[] = [];
+        // this is important we probably need to calculate it dynamically
+        
+        const polygonGraphics = new Graphics();
+        polygonGraphics.lineStyle(1, 0xcccccc, 1, 1, true);
+        if (fill) {
+            polygonGraphics.beginFill(color, 0.5);
+        }
 
-        productGeometryData.forEach((polygonSet) => {
-            var sortedVertices = this.sortVertices(polygonSet.Polygons);
+        var segments = this.generatePolygonSegments(productGeometryData);
 
-            const polygonGraphics = new Graphics();
-            polygonGraphics.lineStyle(1, 0xD5402B, 1, 1, true);
-            //polygonGraphics.beginFill(stairColor);
-            polygonPoints = [];
-            sortedVertices.forEach((vertice) => {
-                polygonPoints.push(new Point((vertice.X - this.minX) / this.scaleFactor, this.revertFactor - (vertice.Y - this.minY) / this.scaleFactor));
+        if (ifcProduct.openings) {
+            ifcProduct.openings.forEach((opening) => {
+                const data = JSON.parse(opening.serializedShapeGeometry);
+                const openingGraphicSegments = this.generatePolygonSegments(data);
+                var combination = PolyBool.combine(segments, openingGraphicSegments);
+                // cut off the opening from the wall polygon + to draw the opening conside using PolyBool.selectIntersect
+                segments = PolyBool.selectDifference(combination);
+                // don't want to draw it - just want to cut it off the wall
+                //this.viewport.addChild(openingGraphic);
             });
+        }
+        var resultPolygon = PolyBool.polygon(segments);
 
+        if (resultPolygon.regions.length === 0) {
+            return null;
+        }
+        resultPolygon.regions.forEach((region) => {
+            polygonPoints = [];
+            region.forEach((point) => {                
+                polygonPoints.push(new Point((point[0] - this.minX) / this.scaleFactor, this.revertFactor - (point[1] - this.minY) / this.scaleFactor));
+            });
             const ifcPolygon = new Polygon(polygonPoints);
             polygonGraphics.drawPolygon(ifcPolygon);
-            polygonGraphics.interactive = true;
-            polygonGraphics.buttonMode = true;
-            //polygonGraphics.endFill();
-            this.viewport.addChild(polygonGraphics);
-
-
-
         });
-
+        
+        polygonGraphics.interactive = true;
+        polygonGraphics.buttonMode = true;
+        this.viewport.addChild(polygonGraphics);
+        polygonGraphics.endFill();
+        return polygonGraphics;
     }
 
-    sortVertices(polygons: any[]): any[] {
-        var x = 0,
-            y = 0,
-            i,
-            j,
-            f,
-            point1,
-            point2;
-        var vertices = polygons.map(p => p.PolygonVertices).reduce(function (a, b) { return a.concat(b); });
-        var distinctVertices = [...new Set(vertices.map(o => JSON.stringify(o)))].map(o => JSON.parse(String(o)));
-
-        for (i = 0, j = distinctVertices.length - 1; i < distinctVertices.length; j = i, i++) {
-            point1 = distinctVertices[i];
-            point2 = distinctVertices[j];
-            f = point1.X * point2.Y - point2.X * point1.Y;
-            x += (point1.X + point2.X) * f;
-            y += (point1.Y + point2.Y) * f;
+    generatePolygonSegments(productGeometryData: any): any {
+        
+        let firstPolygon = {
+            regions: [],
+            inverted: false
         }
+        var segments = PolyBool.segments(firstPolygon);
 
-        f = this.calculateArea(distinctVertices) * 6;
-        //debugger;
-        var center = f == 0 ? new Point(x / f, y / f) : new Point(0,0);
-        var startAng;
-        distinctVertices.forEach(point => {
-            var ang = Math.atan2(point.Y - center.y, point.X - center.x);
-            if (!startAng) { startAng = ang }
-            else {
-                if (ang < startAng) {  // ensure that all points are clockwise of the start point
-                    ang += Math.PI * 2;
-                }
-            }
-            point.angle = ang; // add the angle to the point
-        });
+        productGeometryData.forEach((productShape) => {
+                       
+            productShape.f.forEach((face) => {
+                face.p.forEach((polygon) => {
 
+                    var nextPolygon = {
+                        regions: [],
+                        inverted: false
+                    }
 
-        // Sort clockwise;
-        return distinctVertices.sort((a, b) => a.angle - b.angle);
-    };
+                    nextPolygon.regions.push([]);
 
-    calculateArea(vertices: any[]) {
-        var area = 0,
-            i,
-            j,
-            point1,
-            point2;
+                    polygon.pv.forEach((vertice) => {
+                        nextPolygon.regions[0].push([vertice.X, vertice.Y]);
+                    });
+                    var nextSegment = PolyBool.segments(nextPolygon);
 
-        for (i = 0, j = vertices.length - 1; i < vertices.length; j = i, i++) {
-            point1 = vertices[i];
-            point2 = vertices[j];
-            area += point1.X * point2.Y;
-            area -= point1.Y * point2.X;
-        }
-        area /= 2;
-
-        return area;
-    };
-
-
-    generateGraphics(productGeometryData: any, color?: number, alpha: number = 1): Graphics {
-        let polygonPoints: Point[] = [];
-
-        const polygonGraphics = new Graphics();
-        //polygonGraphics.lineStyle(1, 0xD5402B, 1);
-        polygonGraphics.beginFill(color);
-
-        productGeometryData.forEach((polygonSet) => {
-
-            polygonSet.Polygons.forEach((polygon) => {
-                polygonPoints = [];
-                var i = 0;
-                polygon.PolygonVertices.forEach((vertice) => {
-                    polygonPoints.push(new Point((vertice.X - this.minX) / this.scaleFactor, this.revertFactor - (vertice.Y - this.minY) / this.scaleFactor));
+                    var comb = PolyBool.combine(segments, nextSegment);
+                    segments = PolyBool.selectUnion(comb);
                 });
-
-                const ifcPolygon = new Polygon(polygonPoints);
-                polygonGraphics.drawPolygon(ifcPolygon);
-                polygonGraphics.interactive = true;
-                polygonGraphics.buttonMode = true;
-
             });
-
+            
         });
-
-        polygonGraphics.endFill();
-
-        return polygonGraphics;
-
+        return segments;
     }
 
     getColorMatrix(tintColor: any): filters.ColorMatrixFilter {

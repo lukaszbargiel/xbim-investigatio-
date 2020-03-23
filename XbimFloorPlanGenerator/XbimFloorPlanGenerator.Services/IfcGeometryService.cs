@@ -21,9 +21,9 @@ namespace XbimFloorPlanGenerator.Services
             context.CreateContext();
         }
 
-        public List<PolygonSet> GetShape2DGeometryFromMeshTriangles(IfcProduct product)
+        public List<ProducShape> GetShape2DGeometryFromMeshTriangles(IfcProduct product)
         {
-            var productPolygonSets = new List<PolygonSet>();
+            var productShapes = new List<ProducShape>();
 
             // https://github.com/xBimTeam/XbimEssentials/issues/121
             var productShape =
@@ -31,52 +31,52 @@ namespace XbimFloorPlanGenerator.Services
                     .Where(p => p.RepresentationType != XbimGeometryRepresentationType.OpeningsAndAdditionsExcluded)
                 .Distinct();
 
-            if (productShape.Any())
+            if (!productShape.Any())
             {
-                foreach (var shapeInstance in productShape)
+                return productShapes;
+            }
+            foreach (var shapeInstance in productShape)
+            {
+                var shape = new ProducShape();
+
+                var shapeGeometry = context.ShapeGeometry(shapeInstance.ShapeGeometryLabel);
+                if (shapeGeometry == null) continue;
+
+                byte[] data = ((IXbimShapeGeometryData)shapeGeometry).ShapeData;
+
+                //If you want to get all the faces and trinagulation use this
+                using (var stream = new MemoryStream(data))
                 {
-                    var shapePolygonSet = new PolygonSet();
-                    //var polygonGeometry = new List<Polygon>();
-                    var shapeGeometry = context.ShapeGeometry(shapeInstance.ShapeGeometryLabel);
-                    if (shapeGeometry == null) continue;
-
-                    byte[] data = ((IXbimShapeGeometryData)shapeGeometry).ShapeData;
-
-                    //If you want to get all the faces and trinagulation use this
-                    using (var stream = new MemoryStream(data))
+                    using (var reader = new BinaryReader(stream))
                     {
-                        using (var reader = new BinaryReader(stream))
-                        {
-                            var mesh = reader.ReadShapeTriangulation();
+                        var mesh = reader.ReadShapeTriangulation();
 
-                            List<XbimFaceTriangulation> faces = mesh.Faces as List<XbimFaceTriangulation>;
-                            List<XbimPoint3D> vertices = mesh.Vertices as List<XbimPoint3D>;
-                            var transformedMesh = mesh.Transform(shapeInstance.Transformation);
+                        var transformedMesh = mesh.Transform(shapeInstance.Transformation);
 
-                            // https://books.google.pl/books?id=Z06wDwAAQBAJ&pg=PA250&lpg=PA250&dq=multiview+projection+C%23&source=bl&ots=B2UTC9POLX&sig=ACfU3U380FDBK58fv3hF1OPCfpL9OJdhZQ&hl=pl&sa=X&ved=2ahUKEwj_pZbJ8ZzoAhUBy6YKHWizAYcQ6AEwAHoECAYQAQ#v=onepage&q=multiview%20projection%20C%23&f=false
+                        // https://books.google.pl/books?id=Z06wDwAAQBAJ&pg=PA250&lpg=PA250&dq=multiview+projection+C%23&source=bl&ots=B2UTC9POLX&sig=ACfU3U380FDBK58fv3hF1OPCfpL9OJdhZQ&hl=pl&sa=X&ved=2ahUKEwj_pZbJ8ZzoAhUBy6YKHWizAYcQ6AEwAHoECAYQAQ#v=onepage&q=multiview%20projection%20C%23&f=false
 
-                            var topViewMatrixTransformation = XbimMatrix3D.Identity;
-                            // side view
-                            //topViewMatrixTransformation.M22 = 0;
-                            //topViewMatrixTransformation.M33 = 0;
-                            //topViewMatrixTransformation.M32 = -1;
+                        var topViewMatrixTransformation = XbimMatrix3D.Identity;
+                        // side view
+                        //topViewMatrixTransformation.M22 = 0;
+                        //topViewMatrixTransformation.M33 = 0;
+                        //topViewMatrixTransformation.M32 = -1;
 
-                            //topViewMatrixTransformation.M11 = 0;
-                            topViewMatrixTransformation.M33 = 0;
-                            //topViewMatrixTransformation.M31 = -1;
+                        //topViewMatrixTransformation.M11 = 0;
+                        topViewMatrixTransformation.M33 = 0;
+                        //topViewMatrixTransformation.M31 = -1;
 
-                            var topViewTransformation = transformedMesh.Transform(topViewMatrixTransformation);
-                            var meshPolygons = BiDimensionalHelper.ConvertMesh3DTo2DPolygons(topViewTransformation, true);
-                            shapePolygonSet.Polygons = meshPolygons;
+                        var topViewTransformation = transformedMesh.Transform(topViewMatrixTransformation);
+                        var faces = BiDimensionalHelper.ConvertMesh3DTo2DPolygons(topViewTransformation, true);
+                        shape.Faces = faces;
 
-                            productPolygonSets.Add(shapePolygonSet);
-                        }
+                        productShapes.Add(shape);
                     }
-
                 }
+
             }
 
-            return productPolygonSets;
+
+            return productShapes;
         }
 
 

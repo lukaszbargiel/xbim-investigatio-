@@ -114,7 +114,16 @@ namespace XbimFloorPlanGenerator.Services
 
         private void ExtractStairFlight(IfcStair stair, int floorId)
         {
-            foreach (var substair in stair.IsDecomposedBy.SelectMany(rel => rel.RelatedObjects).OfType<IfcStairFlight>()
+            var stairComponents = stair.IsDecomposedBy.SelectMany(rel => rel.RelatedObjects).ToList();
+
+            foreach (var substair in stairComponents.OfType<IfcStairFlight>()
+                .Where(p => !p.GetType().IsSubclassOf(typeof(IfcFeatureElementSubtraction))) // Ignore Openings  
+                .OrderBy(o => o.GetType().Name))
+            {
+                var dbstair = _ifcStairService.CreateStair(substair, floorId);
+                _stairRepository.Create(dbstair);
+            }
+            foreach (var substair in stairComponents.OfType<IfcStair>()
                 .Where(p => !p.GetType().IsSubclassOf(typeof(IfcFeatureElementSubtraction))) // Ignore Openings  
                 .OrderBy(o => o.GetType().Name))
             {
@@ -132,9 +141,11 @@ namespace XbimFloorPlanGenerator.Services
                 {
                     ExtractStairFlight(stair, floorId);
                 }
-
-                var dbstair = _ifcStairService.CreateStair(stair, floorId);
-                _stairRepository.Create(dbstair);
+                else
+                {
+                    var dbstair = _ifcStairService.CreateStair(stair, floorId);
+                    _stairRepository.Create(dbstair);
+                }
             }
         }
         private void ExtractWalls(IfcBuildingStorey storey, int floorId)

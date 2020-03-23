@@ -22,6 +22,7 @@
     "@angular/platform-server": "8.0.0",
     "@angular/router": "8.0.0",
     "@nguniversal/module-map-ngfactory-loader": "8.0.0-rc.1",
+    "@turf/turf": "^5.1.6",
     "aspnet-prerendering": "^3.0.1",
     "bootstrap": "^4.3.1",
     "core-js": "^2.6.5",
@@ -29,6 +30,7 @@
     "oidc-client": "^1.9.0",
     "pixi-viewport": "^4.4.1",
     "pixi.js": "^5.2.0",
+    "polybooljs": "^1.2.0",
     "popper.js": "^1.14.3",
     "rxjs": "^6.4.0",
     "zone.js": "~0.9.1"
